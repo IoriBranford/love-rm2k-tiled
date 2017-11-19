@@ -32,25 +32,75 @@ local TilesetW = Tileset_CombinedPagesW + Tileset_LandTilesW + Tileset_WaterTile
 local TilesetH = Tileset_LandTilesH + TileSize
 
 local RPGM2k_WaterBlockMT = {
-	'oc-nw1','oc-ne1','oc-nw2','oc-ne2','oc-nw3','oc-ne3',
-	'oc-sw1','oc-se1','oc-sw2','oc-se2','oc-sw3','oc-se3',
+	'ia-nw1','ia-ne1','ia-nw2','ia-ne2','ia-nw3','ia-ne3',
+	'ia-sw1','ia-se1','ia-sw2','ia-se2','ia-sw3','ia-se3',
 	've-nw1','ve-ne1','ve-nw2','ve-ne2','ve-nw3','ve-ne3',
 	've-sw1','ve-se1','ve-sw2','ve-se2','ve-sw3','ve-se3',
 	'he-nw1','he-ne1','he-nw2','he-ne2','he-nw3','he-ne3',
 	'he-sw1','he-se1','he-sw2','he-se2','he-sw3','he-se3',
-	'ic-nw1','ic-ne1','ic-nw2','ic-ne2','ic-nw3','ic-ne3',
-	'ic-sw1','ic-se1','ic-sw2','ic-se2','ic-sw3','ic-se3'
+	'xa-nw1','xa-ne1','xa-nw2','xa-ne2','xa-nw3','xa-ne3',
+	'xa-sw1','xa-se1','xa-sw2','xa-se2','xa-sw3','xa-se3'
 }
 
-local RPGM2k_LandBlockMT = {
-	'sh-nw','sh-ne','du-nw','du-ne','ic-nw','ic-ne',
-	'sh-sw','sh-se','du-sw','du-se','ic-sw','ic-se',
-	'oc-nw',''     ,'he-nw','he-ne',''     ,'oc-se',
-	''     ,''     ,''     ,''     ,''     ,''     ,
-	've-nw',''     ,'ct-nw','ct-ne',''     ,'ve-ne',
-	've-sw',''     ,'ct-sw','ct-se',''     ,'ve-se',
-	''     ,''     ,''     ,''     ,''     ,''     ,
-	'oc-sw',''     ,'he-sw','he-se',''     ,'oc-se',
+local MTS = MiniTileSize
+local RPGM2k_LandBlockMTXY = {
+	['sh-nw']={0*MTS,MTS*0},['sh-ne']={1*MTS,MTS*0},['du-nw']={2*MTS,MTS*0},['du-ne']={3*MTS,MTS*0},['xa-nw']={4*MTS,MTS*0},['xa-ne']={5*MTS,MTS*0},
+	['sh-sw']={0*MTS,MTS*1},['sh-se']={1*MTS,MTS*1},['du-sw']={2*MTS,MTS*1},['du-se']={3*MTS,MTS*1},['xa-sw']={4*MTS,MTS*1},['xa-se']={5*MTS,MTS*1},
+	['ia-nw']={0*MTS,MTS*2},                        ['he-nw']={2*MTS,MTS*2},['he-ne']={3*MTS,MTS*2},                        ['ia-ne']={5*MTS,MTS*2},
+	['ve-nw']={0*MTS,MTS*4},                        ['ct-nw']={2*MTS,MTS*4},['ct-ne']={3*MTS,MTS*4},                        ['ve-ne']={5*MTS,MTS*4},
+	['ve-sw']={0*MTS,MTS*5},                        ['ct-sw']={2*MTS,MTS*5},['ct-se']={3*MTS,MTS*5},                        ['ve-se']={5*MTS,MTS*5},
+	['ia-sw']={0*MTS,MTS*7},                        ['he-sw']={2*MTS,MTS*7},['he-se']={3*MTS,MTS*7},                        ['ia-se']={5*MTS,MTS*7}
+}
+
+local Tileset_LandTileCorners = {
+	'du', 'du', 'du', 'du',
+	'ct', 'ct', 'ct', 'ct',
+	'xa', 'ct', 'ct', 'ct',
+	'ct', 'xa', 'ct', 'ct',
+	'xa', 'xa', 'ct', 'ct',
+	'ct', 'ct', 'ct', 'xa',
+	'xa', 'ct', 'ct', 'xa',
+	'ct', 'xa', 'ct', 'xa',
+	'xa', 'xa', 'ct', 'xa',
+	'ct', 'ct', 'xa', 'ct',
+	'xa', 'ct', 'xa', 'ct',
+	'ct', 'xa', 'xa', 'ct',
+	'xa', 'xa', 'xa', 'ct',
+	'ct', 'ct', 'xa', 'xa',
+	'xa', 'ct', 'xa', 'xa',
+	'ct', 'xa', 'xa', 'xa',
+	'xa', 'xa', 'xa', 'xa',
+	've', 'ct', 've', 'ct',
+	've', 'xa', 've', 'ct',
+	've', 'ct', 've', 'xa',
+	've', 'xa', 've', 'xa',
+	'he', 'he', 'ct', 'ct',
+	'he', 'he', 'ct', 'xa',
+	'he', 'he', 'xa', 'ct',
+	'he', 'he', 'xa', 'xa',
+	'ct', 've', 'ct', 've',
+	'ct', 've', 'xa', 've',
+	'xa', 've', 'ct', 've',
+	'xa', 've', 'xa', 've',
+	'ct', 'ct', 'he', 'he',
+	'xa', 'ct', 'he', 'he',
+	'ct', 'xa', 'he', 'he',
+	'xa', 'xa', 'he', 'he',
+	've', 've', 've', 've',
+	'he', 'he', 'he', 'he',
+	'ia', 'he', 've', 'ct',
+	'ia', 'he', 've', 'xa',
+	'he', 'ia', 'ct', 've',
+	'he', 'ia', 'xa', 've',
+	'ct', 've', 'he', 'ia',
+	'xa', 've', 'he', 'ia',
+	've', 'ct', 'ia', 'he',
+	've', 'xa', 'ia', 'he',
+	'sh', 'sh', 've', 've',
+	'sh', 'he', 'sh', 'he',
+	've', 've', 'sh', 'sh',
+	'he', 'sh', 'he', 'sh',
+	'sh', 'sh', 'sh', 'sh'
 }
 
 local RPGM2k_WaterBlockXY = {
@@ -60,6 +110,21 @@ local RPGM2k_WaterBlockXY = {
 
 local RPGM2k_AnimBlockXY = {
 	3*TileSize,4*TileSize
+}
+
+local RPGM2k_AnimTilesXY = {
+	0*TileSize,0*TileSize,
+	0*TileSize,1*TileSize,
+	0*TileSize,2*TileSize,
+	0*TileSize,3*TileSize,
+	1*TileSize,0*TileSize,
+	1*TileSize,1*TileSize,
+	1*TileSize,2*TileSize,
+	1*TileSize,3*TileSize,
+	2*TileSize,0*TileSize,
+	2*TileSize,1*TileSize,
+	2*TileSize,2*TileSize,
+	2*TileSize,3*TileSize
 }
 
 local RPGM2k_LandBlockXY = {
@@ -110,15 +175,52 @@ local function cutout(imagedata, xys, w, h)
 	return cutouts
 end
 
-local function combinePages(pages)
-	local combinedpages = love.image.newImageData(Tileset_CombinedPagesW, Tileset_CombinedPagesH)
+local function combineCutouts(cutouts, cols, rows)
+	local cutoutw, cutouth = cutouts[1]:getWidth(), cutouts[1]:getHeight()
+	local combinedimages = love.image.newImageData(cutoutw*cols, cutouth*rows)
+	local combinedw = combinedimages:getWidth()
 	local x, y = 0, 0
-	for i=1, #pages do
-		local page = pages[i]
-		combinedpages:paste(page, x, y, 0, 0, page:getWidth(), page:getHeight())
-		y = y + RPGM2k_PageH
+	for i=1, #cutouts do
+		local image = cutouts[i]
+		combinedimages:paste(image, x, y, 0, 0, imagew, imageh)
+		x = x + cutoutw
+		if x >= combinedw then
+			x = 0
+			y = y + cutouth
+		end
 	end
-	return combinedpages
+	return combinedimages
+end
+
+local function cutoutDict(imagedata, xydict, w, h)
+	local cutouts = {}
+	for key, pos in pairs(xydict) do
+		local x, y = pos[1], pos[2]
+		local cutout = love.image.newImageData(w,h)
+		cutout:paste(imagedata, 0, 0, x, y, w, h)
+		cutouts[key] = cutout
+	end
+	return cutouts
+end
+
+local function buildTilesFromBlock(block, minitilexys, tilecorners)
+	local minitiles = cutoutDict(block, minitilexys, MiniTileSize, MiniTileSize)
+	local blocktiles = {}
+	for i = 1, #tilecorners/4 do
+		local nw, ne, sw, se =
+			tilecorners[4*i-3]..'-nw', tilecorners[4*i-2]..'-ne',
+			tilecorners[4*i-1]..'-sw', tilecorners[4*i-0]..'-se'
+		--print(nw, ne, sw, se)
+		nw, ne, sw, se = minitiles[nw], minitiles[ne], minitiles[sw], minitiles[se]
+
+		local blocktile = love.image.newImageData(TileSize, TileSize)
+		blocktile:paste(nw, MTS*0, MTS*0, 0, 0, MiniTileSize, MiniTileSize)
+		blocktile:paste(ne, MTS*1, MTS*0, 0, 0, MiniTileSize, MiniTileSize)
+		blocktile:paste(sw, MTS*0, MTS*1, 0, 0, MiniTileSize, MiniTileSize)
+		blocktile:paste(se, MTS*1, MTS*1, 0, 0, MiniTileSize, MiniTileSize)
+		blocktiles[#blocktiles+1] = blocktile
+	end
+	return blocktiles
 end
 
 local function dbg_save(imagedatas, prefix)
@@ -143,12 +245,23 @@ function love.run()
 	assert(chipsetdata, "Couldn't load chipsetdata "..chipsetfile)
 
 	local in_waterblocks = cutout(chipsetdata, RPGM2k_WaterBlockXY, RPGM2k_BlockW, RPGM2k_BlockH)
-	local in_animblocks = cutout(chipsetdata, RPGM2k_AnimBlockXY, RPGM2k_BlockW, RPGM2k_BlockH)
 	local in_landblocks = cutout(chipsetdata, RPGM2k_LandBlockXY, RPGM2k_BlockW, RPGM2k_BlockH)
+	local in_lotilepages = cutout(chipsetdata, RPGM2k_LoTilePageXY, RPGM2k_PageW, RPGM2k_PageH)
+	local in_hitilepages = cutout(chipsetdata, RPGM2k_HiTilePageXY, RPGM2k_PageW, RPGM2k_PageH)
+	local in_animblock = cutout(chipsetdata, RPGM2k_AnimBlockXY, RPGM2k_BlockW, RPGM2k_BlockH)[1]
 
-	local lotiles = combinePages(cutout(chipsetdata, RPGM2k_LoTilePageXY, RPGM2k_PageW, RPGM2k_PageH))
-	local hitiles = combinePages(cutout(chipsetdata, RPGM2k_HiTilePageXY, RPGM2k_PageW, RPGM2k_PageH))
+	local landtiles = {}
+	for i=1, #in_landblocks do
+		local tiles = buildTilesFromBlock(in_landblocks[i], RPGM2k_LandBlockMTXY, Tileset_LandTileCorners)
+		landtiles[#landtiles+1] = combineCutouts(tiles, 1, 48)
+	end
+	landtiles = combineCutouts(landtiles, 12, 1)
 
+	local animtiles = cutout(in_animblock, RPGM2k_AnimTilesXY, TileSize, TileSize)
+	animtiles = combineCutouts(animtiles, 12, 1)
+
+	local lotiles = combineCutouts(in_lotilepages, 1, 3)
+	local hitiles = combineCutouts(in_hitilepages, 1, 3)
 	local tr, tg, tb, _ = hitiles:getPixel(0, 0)
 	hitiles:mapPixel(function(_,_,r,g,b,a)
 		if r==tr and g==tg and b==tb then
@@ -160,6 +273,8 @@ function love.run()
 	local tileset = love.image.newImageData(TilesetW, TilesetH)
 	tileset:paste(lotiles, Tileset_LoTilesX, Tileset_LoTilesY, 0, 0, Tileset_CombinedPagesW, Tileset_CombinedPagesH)
 	tileset:paste(hitiles, Tileset_HiTilesX, Tileset_HiTilesY, 0, 0, Tileset_CombinedPagesW, Tileset_CombinedPagesH)
+	tileset:paste(landtiles, Tileset_LandTilesX, Tileset_LandTilesY, 0, 0, Tileset_LandTilesW, Tileset_LandTilesH)
+	tileset:paste(animtiles, Tileset_AnimTilesX, Tileset_AnimTilesY, 0, 0, Tileset_AnimTilesW, Tileset_AnimTilesH)
 
 	local chipsetname = basename(chipsetfile)
 	tileset:encode("png", chipsetname..".png")
