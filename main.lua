@@ -2,14 +2,14 @@ local TileSize = 16
 local MiniTileSize = TileSize/2
 
 local Tileset_WaterAnimsX = TileSize*18
-local Tileset_WaterAnimsY = TileSize*0
+local Tileset_WaterAnimsY = TileSize*2
 local Tileset_WaterAnimsW = TileSize*6
-local Tileset_WaterAnimsH = TileSize*48
+local Tileset_WaterAnimsH = TileSize*46
 
-local Tileset_TileAnimsX = TileSize*0
-local Tileset_TileAnimsY = TileSize*48
-local Tileset_TileAnimsW = TileSize*12
-local Tileset_TileAnimsH = TileSize*1
+local Tileset_TileAnimsX = TileSize*18
+local Tileset_TileAnimsY = TileSize*0
+local Tileset_TileAnimsW = TileSize*6
+local Tileset_TileAnimsH = TileSize*2
 
 local Tileset_LandTilesX = TileSize*6
 local Tileset_LandTilesY = TileSize*0
@@ -24,7 +24,7 @@ local Tileset_CombinedPagesW = TileSize*6
 local Tileset_CombinedPagesH = TileSize*24
 
 local TilesetW = Tileset_CombinedPagesW + Tileset_LandTilesW + Tileset_WaterAnimsW
-local TilesetH = Tileset_LandTilesH + TileSize
+local TilesetH = Tileset_LandTilesH
 
 local Tileset_LandTileCorners = {
 	'du', 'du', 'du', 'du',
@@ -148,8 +148,8 @@ for y = 8,9 do
 end
 
 local RM2k_TileAnimsXY = {}
-for x = 3,5 do
-	for y = 4,7 do
+for y = 4,7 do
+	for x = 3,5 do
 		RM2k_TileAnimsXY[#RM2k_TileAnimsXY+1] = x*TileSize
 		RM2k_TileAnimsXY[#RM2k_TileAnimsXY+1] = y*TileSize
 	end
@@ -289,7 +289,7 @@ function love.run()
 	wateranims = combineCutouts(wateranims, 6, 48)
 
 	local tileanims = cutout(chipsetdata, RM2k_TileAnimsXY, TileSize, TileSize)
-	tileanims = combineCutouts(tileanims, 12, 1)
+	tileanims = combineCutouts(tileanims, 6, 2)
 
 	local in_landblocks = cutout(chipsetdata, RM2k_LandBlockXY, RM2k_BlockW, RM2k_BlockH)
 	local landtiles = {}
