@@ -7,39 +7,47 @@ local love_image_newImageData = love.image.newImageData
 local TileSize = 16
 local MiniTileSize = TileSize/2
 
-local Tileset_WaterAnimsX = TileSize*18
-local Tileset_WaterAnimsY = TileSize*2
-local Tileset_WaterAnimsW = TileSize*6
-local Tileset_WaterAnimsH = TileSize*46
+local Tileset_WaterAnimsC = 18
+local Tileset_WaterAnimsR = 2
+local Tileset_WaterAnimsCs = 6
+local Tileset_WaterAnimsRs = 46
+local Tileset_WaterAnimsX = TileSize*Tileset_WaterAnimsC
+local Tileset_WaterAnimsY = TileSize*Tileset_WaterAnimsR
+local Tileset_WaterAnimsW = TileSize*Tileset_WaterAnimsCs
+local Tileset_WaterAnimsH = TileSize*Tileset_WaterAnimsRs
 
-local Tileset_TileAnimsX = TileSize*18
-local Tileset_TileAnimsY = TileSize*0
-local Tileset_TileAnimsC = 6
-local Tileset_TileAnimsR = 2
-local Tileset_TileAnimsW = TileSize*Tileset_TileAnimsC
-local Tileset_TileAnimsH = TileSize*Tileset_TileAnimsR
+local Tileset_TileAnimsC = 18
+local Tileset_TileAnimsR = 0
+local Tileset_TileAnimsCs = 6
+local Tileset_TileAnimsRs = 2
+local Tileset_TileAnimsX = TileSize*Tileset_TileAnimsC
+local Tileset_TileAnimsY = TileSize*Tileset_TileAnimsR
+local Tileset_TileAnimsW = TileSize*Tileset_TileAnimsCs
+local Tileset_TileAnimsH = TileSize*Tileset_TileAnimsRs
 
 local Tileset_LandTilesX = TileSize*6
 local Tileset_LandTilesY = TileSize*0
-local Tileset_LandTilesC = 12
-local Tileset_LandTilesR = 48
-local Tileset_LandTilesW = TileSize*Tileset_LandTilesC
-local Tileset_LandTilesH = TileSize*Tileset_LandTilesR
+local Tileset_LandTilesCs = 12
+local Tileset_LandTilesRs = 48
+local Tileset_LandTilesW = TileSize*Tileset_LandTilesCs
+local Tileset_LandTilesH = TileSize*Tileset_LandTilesRs
 
 local Tileset_LoTilesX = TileSize*0
 local Tileset_LoTilesY = TileSize*0
 local Tileset_HiTilesX = TileSize*0
 local Tileset_HiTilesY = TileSize*24
-local Tileset_CombinedPagesC = 6
-local Tileset_CombinedPagesR = 24
-local Tileset_CombinedPagesW = TileSize*Tileset_CombinedPagesC
-local Tileset_CombinedPagesH = TileSize*Tileset_CombinedPagesR
+local Tileset_CombinedPagesCs = 6
+local Tileset_CombinedPagesRs = 24
+local Tileset_CombinedPagesW = TileSize*Tileset_CombinedPagesCs
+local Tileset_CombinedPagesH = TileSize*Tileset_CombinedPagesRs
 
-local TilesetC = Tileset_CombinedPagesC + Tileset_LandTilesC + Tileset_TileAnimsC
-local TilesetR = Tileset_LandTilesR
-local TilesetN = TilesetC*TilesetR
-local TilesetW = TileSize*TilesetC
-local TilesetH = TileSize*TilesetR
+local TilesetCs = Tileset_CombinedPagesCs + Tileset_LandTilesCs + Tileset_TileAnimsCs
+local TilesetRs = Tileset_LandTilesRs
+local TilesetN = TilesetCs*TilesetRs
+local TilesetW = TileSize*TilesetCs
+local TilesetH = TileSize*TilesetRs
+
+local Tileset_WaterAnimsT = Tileset_WaterAnimsR*TilesetCs+Tileset_WaterAnimsC
 
 local Tileset_LandTileCorners = {
 	'du','du','du','du', 'ct','ct','ct','ct', 'xa','ct','ct','ct', 'ct','xa','ct','ct',
@@ -81,6 +89,58 @@ for i = 12, #Tileset_LandTileCorners-4, 4 do
 				watercorners[#watercorners+1] = corner..f
 			end
 		end
+	end
+end
+
+local Tileset_TileAnimFramesBase = {
+	TilesetCs*0 + 0, 125,
+	TilesetCs*0 + 3, 125,
+	TilesetCs*1 + 0, 125,
+	TilesetCs*1 + 3, 125
+}
+
+local Tileset_WaterAnimFramesBase = {
+	0, 125,
+	2, 125,
+	4, 125,
+	2, 125
+}
+
+local XML_Tileset, XML_Image, XML_Tile, XML_Animation, XML_Frame
+	= xml.tags('tileset, image, tile, animation, frame')
+
+local TilesetXML = XML_Tileset({
+	name = "$tilesetname",
+	tilewidth = TileSize,
+	tileheight = TileSize,
+	tilecount = TilesetN,
+	columns = TilesetCs,
+	XML_Image({
+		source = "$imagefile",
+		width = TilesetW,
+		height = TilesetH
+	})
+})
+
+for id = Tileset_TileAnimsC, Tileset_TileAnimsC + 2 do
+	local frames = {}
+	for f = 2, #Tileset_TileAnimFramesBase, 2 do
+		local tileid = id + Tileset_TileAnimFramesBase[f-1]
+		local duration = Tileset_TileAnimFramesBase[f]
+		frames[#frames+1] = XML_Frame({tileid=tileid, duration=duration})
+	end
+	TilesetXML:add_child(XML_Tile({id=id, XML_Animation(frames)}))
+end
+
+for id1 = Tileset_WaterAnimsT, Tileset_WaterAnimsT + TilesetCs*(Tileset_WaterAnimsRs-1), TilesetCs do
+	for id = id1, id1 + 1 do
+		local frames = {}
+		for f = 2, #Tileset_WaterAnimFramesBase, 2 do
+			local tileid = id + Tileset_WaterAnimFramesBase[f-1]
+			local duration = Tileset_WaterAnimFramesBase[f]
+			frames[#frames+1] = XML_Frame({tileid=tileid, duration=duration})
+		end
+		TilesetXML:add_child(XML_Tile({id=id, XML_Animation(frames)}))
 	end
 end
 
@@ -243,21 +303,6 @@ local function buildTilesFromBlock(block, minitilexys, tilecorners)
 	return blocktiles
 end
 
-local function dbg_save(imagedatas, prefix)
-	for i=1,#imagedatas do
-		local imagefile = prefix..i..".png"
-		imagedatas[i]:encode("png", imagefile)
-	end
-end
-
-local Tileset_XMLTemplate = [[
-<tileset name="$TILESETNAME" tilewidth="%d" tileheight="%d" tilecount="%d" columns="%d">
- <image source="$IMAGEFILE" width="%d" height="%d"/>
-</tileset>
-]]
-Tileset_XMLTemplate = xml.parse(Tileset_XMLTemplate:format(TileSize, TileSize,
-	TilesetC*TilesetR, TilesetC, TilesetW, TilesetH))
-
 --- Function equivalent to basename in POSIX systems
 --- Copyright 2011-2014, Gianluca Fiore © <forod.g@gmail.com>
 --@param str the path string
@@ -285,15 +330,15 @@ local function buildTileset(chipsetfile)
 	wateranims = combineCutouts(wateranims, 6, 48)
 
 	local tileanims = cutout(chipsetdata, RM2k_TileAnimsXY, TileSize, TileSize)
-	tileanims = combineCutouts(tileanims, Tileset_TileAnimsC, Tileset_TileAnimsR)
+	tileanims = combineCutouts(tileanims, Tileset_TileAnimsCs, Tileset_TileAnimsRs)
 
 	local in_landblocks = cutout(chipsetdata, RM2k_LandBlockXY, RM2k_BlockW, RM2k_BlockH)
 	local landtiles = {}
 	for i=1, #in_landblocks do
 		local tiles = buildTilesFromBlock(in_landblocks[i], RM2k_LandBlockMTXY, Tileset_LandTileCorners)
-		landtiles[#landtiles+1] = combineCutouts(tiles, 1, Tileset_LandTilesR)
+		landtiles[#landtiles+1] = combineCutouts(tiles, 1, Tileset_LandTilesRs)
 	end
-	landtiles = combineCutouts(landtiles, Tileset_LandTilesC, 1)
+	landtiles = combineCutouts(landtiles, Tileset_LandTilesCs, 1)
 
 	local in_lotilepages = cutout(chipsetdata, RM2k_LoTilePageXY, RM2k_PageW, RM2k_PageH)
 	local in_hitilepages = cutout(chipsetdata, RM2k_HiTilePageXY, RM2k_PageW, RM2k_PageH)
@@ -318,7 +363,7 @@ local function buildTileset(chipsetfile)
 	local imagefile = tilesetname..".png"
 	tileset:encode("png", imagefile)
 
-	local tilesetxml = Tileset_XMLTemplate:subst({TILESETNAME=tilesetname, IMAGEFILE=imagefile})
+	local tilesetxml = TilesetXML:subst({tilesetname=tilesetname, imagefile=imagefile})
 
 	tilesetxml = xml.tostring(tilesetxml, '', ' ', nil, '<?xml version="1.0" encoding="UTF-8"?>')
 	local xmlfile = tilesetname..".tsx"
