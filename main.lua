@@ -1,6 +1,7 @@
 local pl = require "pl.import_into"()
 local xml = pl.xml
 
+local pcall = pcall
 local love_image_newImageData = love.image.newImageData
 
 local TileSize = 16
@@ -265,11 +266,20 @@ local function basename(str)
 	return name
 end
 
-function love.run()
-	local chipsetfile = arg[2]
-	assert(chipsetfile, "Usage: rpgm2k-tiled <chipsetfile>")
-	local chipsetdata = love_image_newImageData(chipsetfile)
-	assert(chipsetdata, "Couldn't load chipsetdata "..chipsetfile)
+local function buildTileset(chipsetfile)
+	if love.filesystem.isDirectory(chipsetfile) then
+		local files = love.filesystem.getDirectoryItems(chipsetfile)
+		for i = 1, #files do
+			buildTileset(chipsetfile..'/'..files[i])
+		end
+		return
+	end
+
+	local isimage, chipsetdata = pcall(love_image_newImageData, chipsetfile)
+	if not isimage then
+		print(chipsetdata)
+		return
+	end
 
 	local wateranims = buildTilesFromBlock(chipsetdata, RM2k_WaterAnimBlockMTXY, Tileset_WaterAnimCorners)
 	wateranims = combineCutouts(wateranims, 6, 48)
@@ -313,6 +323,13 @@ function love.run()
 	tilesetxml = xml.tostring(tilesetxml, '', ' ', nil, '<?xml version="1.0" encoding="UTF-8"?>')
 	local xmlfile = tilesetname..".tsx"
 	love.filesystem.write(xmlfile, tilesetxml)
+end
+
+function love.run()
+	assert(#arg >= 2, "Usage: love <rm2k-tiled-path> <chipsetfile> [chipsetfile, chipsetfile, ...]")
+	for i=2, #arg do
+		buildTileset(arg[i])
+	end
 
 	love.system.openURL(love.filesystem.getSaveDirectory())
 end
