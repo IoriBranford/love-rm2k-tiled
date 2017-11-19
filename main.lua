@@ -313,4 +313,6 @@ function love.run()
 	tilesetxml = xml.tostring(tilesetxml, '', ' ', nil, '<?xml version="1.0" encoding="UTF-8"?>')
 	local xmlfile = tilesetname..".tsx"
 	love.filesystem.write(xmlfile, tilesetxml)
+
+	love.system.openURL(love.filesystem.getSaveDirectory())
 end
