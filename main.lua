@@ -1,3 +1,6 @@
+local pl = require "pl.import_into"()
+local xml = pl.xml
+
 local love_image_newImageData = love.image.newImageData
 
 local TileSize = 16
@@ -29,54 +32,18 @@ local TilesetW = Tileset_CombinedPagesW + Tileset_LandTilesW + Tileset_WaterAnim
 local TilesetH = Tileset_LandTilesH
 
 local Tileset_LandTileCorners = {
-	'du', 'du', 'du', 'du',
-	'ct', 'ct', 'ct', 'ct',
-	'xa', 'ct', 'ct', 'ct',
-	'ct', 'xa', 'ct', 'ct',
-	'xa', 'xa', 'ct', 'ct',
-	'ct', 'ct', 'ct', 'xa',
-	'xa', 'ct', 'ct', 'xa',
-	'ct', 'xa', 'ct', 'xa',
-	'xa', 'xa', 'ct', 'xa',
-	'ct', 'ct', 'xa', 'ct',
-	'xa', 'ct', 'xa', 'ct',
-	'ct', 'xa', 'xa', 'ct',
-	'xa', 'xa', 'xa', 'ct',
-	'ct', 'ct', 'xa', 'xa',
-	'xa', 'ct', 'xa', 'xa',
-	'ct', 'xa', 'xa', 'xa',
-	'xa', 'xa', 'xa', 'xa',
-	've', 'ct', 've', 'ct',
-	've', 'xa', 've', 'ct',
-	've', 'ct', 've', 'xa',
-	've', 'xa', 've', 'xa',
-	'he', 'he', 'ct', 'ct',
-	'he', 'he', 'ct', 'xa',
-	'he', 'he', 'xa', 'ct',
-	'he', 'he', 'xa', 'xa',
-	'ct', 've', 'ct', 've',
-	'ct', 've', 'xa', 've',
-	'xa', 've', 'ct', 've',
-	'xa', 've', 'xa', 've',
-	'ct', 'ct', 'he', 'he',
-	'xa', 'ct', 'he', 'he',
-	'ct', 'xa', 'he', 'he',
-	'xa', 'xa', 'he', 'he',
-	've', 've', 've', 've',
-	'he', 'he', 'he', 'he',
-	'ia', 'he', 've', 'ct',
-	'ia', 'he', 've', 'xa',
-	'he', 'ia', 'ct', 've',
-	'he', 'ia', 'xa', 've',
-	'ct', 've', 'he', 'ia',
-	'xa', 've', 'he', 'ia',
-	've', 'ct', 'ia', 'he',
-	've', 'xa', 'ia', 'he',
-	'sh', 'sh', 've', 've',
-	'sh', 'he', 'sh', 'he',
-	've', 've', 'sh', 'sh',
-	'he', 'sh', 'he', 'sh',
-	'sh', 'sh', 'sh', 'sh'
+	'du','du','du','du', 'ct','ct','ct','ct', 'xa','ct','ct','ct', 'ct','xa','ct','ct',
+	'xa','xa','ct','ct', 'ct','ct','ct','xa', 'xa','ct','ct','xa', 'ct','xa','ct','xa',
+	'xa','xa','ct','xa', 'ct','ct','xa','ct', 'xa','ct','xa','ct', 'ct','xa','xa','ct',
+	'xa','xa','xa','ct', 'ct','ct','xa','xa', 'xa','ct','xa','xa', 'ct','xa','xa','xa',
+	'xa','xa','xa','xa', 've','ct','ve','ct', 've','xa','ve','ct', 've','ct','ve','xa',
+	've','xa','ve','xa', 'he','he','ct','ct', 'he','he','ct','xa', 'he','he','xa','ct',
+	'he','he','xa','xa', 'ct','ve','ct','ve', 'ct','ve','xa','ve', 'xa','ve','ct','ve',
+	'xa','ve','xa','ve', 'ct','ct','he','he', 'xa','ct','he','he', 'ct','xa','he','he',
+	'xa','xa','he','he', 've','ve','ve','ve', 'he','he','he','he', 'ia','he','ve','ct',
+	'ia','he','ve','xa', 'he','ia','ct','ve', 'he','ia','xa','ve', 'ct','ve','he','ia',
+	'xa','ve','he','ia', 've','ct','ia','he', 've','xa','ia','he', 'sh','sh','ve','ve',
+	'sh','he','sh','he', 've','ve','sh','sh', 'he','sh','he','sh', 'sh','sh','sh','sh'
 }
 
 local Tileset_WaterAnimCorners = {
@@ -87,13 +54,13 @@ local Tileset_WaterAnimCorners = {
 	'1ia2', '1ia2', '1ia2', '1ia2', '2ia2', '2ia2', '2ia2', '2ia2',
 	'1ia3', '1ia3', '1ia3', '1ia3', '2ia3', '2ia3', '2ia3', '2ia3',
 }
-for i = 3, #Tileset_LandTileCorners/4 - 2 do
+for i = 12, #Tileset_LandTileCorners-4, 4 do
 	local landcorners = Tileset_LandTileCorners
 	local watercorners = Tileset_WaterAnimCorners
 	for f = 1,3 do
 		for e = 1,2 do
 			for j = -3,0 do
-				local corner = landcorners[4*i-j]
+				local corner = landcorners[i+j]
 				if corner == 'sh' then
 					corner = 'ia'
 				end
@@ -206,8 +173,8 @@ end
 
 local function cutout(imagedata, xys, w, h)
 	local cutouts = {}
-	for i = 1, #xys/2 do
-		local x, y = xys[2*i-1], xys[2*i]
+	for i = 2, #xys, 2 do
+		local x, y = xys[i-1], xys[i]
 		local cutout = love_image_newImageData(w,h)
 		cutout:paste(imagedata, 0, 0, x, y, w, h)
 		cutouts[#cutouts+1] = cutout
@@ -246,10 +213,10 @@ end
 local function buildTilesFromBlock(block, minitilexys, tilecorners)
 	local minitiles = cutoutDict(block, minitilexys, MiniTileSize, MiniTileSize)
 	local blocktiles = {}
-	for i = 1, #tilecorners/4 do
+	for i = 4, #tilecorners, 4 do
 		local nw, ne, sw, se =
-			tilecorners[4*i-3]..'-nw', tilecorners[4*i-2]..'-ne',
-			tilecorners[4*i-1]..'-sw', tilecorners[4*i-0]..'-se'
+			tilecorners[i-3]..'-nw', tilecorners[i-2]..'-ne',
+			tilecorners[i-1]..'-sw', tilecorners[i-0]..'-se'
 		assert(minitiles[nw], nw)
 		assert(minitiles[ne], ne)
 		assert(minitiles[sw], sw)
