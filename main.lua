@@ -79,6 +79,11 @@ for e = 1,2 do
 			end
 		end
 	end
+	for f = 1,3 do
+		for i=1,4 do
+			watercorners[#watercorners+1] = 'ct'..f
+		end
+	end
 end
 
 local Tileset_TileAnimFramesBase = {
@@ -94,6 +99,44 @@ local Tileset_WaterAnimFramesBase = {
 	2, 125,
 	1, 125
 }
+
+local Tileset_TileTerrains = {}
+local function BuildTileTerrain(t, tilecorners, c1, r1, cs, rs)
+	local i = 4
+	for id1 = r1*TilesetCs + c1, (r1+rs-1)*TilesetCs + c1, TilesetCs do
+		for id = id1, id1 + cs - 1 do
+			local nw, ne, sw, se =
+				tilecorners[i-3],
+				tilecorners[i-2],
+				tilecorners[i-1],
+				tilecorners[i-0]
+
+			local terrain = "%s,%s,%s,%s"
+			terrain = terrain:format(
+				(nw == 'ct' or nw == 'ct1') and t or '',
+				(ne == 'ct' or ne == 'ct1') and t or '',
+				(sw == 'ct' or sw == 'ct1') and t or '',
+				(se == 'ct' or se == 'ct1') and t or ''
+			)
+			Tileset_TileTerrains[id] = terrain
+			i = i + 4
+			if i > #tilecorners then
+				return
+			end
+		end
+	end
+end
+
+for t = 0,1 do
+	BuildTileTerrain(t, Tileset_WaterAnimCorners,
+		Tileset_WaterAnimsC, Tileset_WaterAnimsR + t*Tileset_WaterAnimsRs/2,
+		Tileset_WaterAnimsCs, Tileset_WaterAnimsRs/2)
+end
+for t = 2, 13 do
+	BuildTileTerrain(t, Tileset_LandTileCorners,
+		Tileset_LandTilesC+t-2, Tileset_LandTilesR,
+		1, Tileset_LandTilesRs)
+end
 
 --Terrain granularity 1
 --[[
@@ -162,6 +205,7 @@ local TilesetXML = xml.elem("tileset", {
 	tileheight = TileSize,
 	tilecount = TilesetN,
 	columns = TilesetCs,
+	xml.elem("terraintypes"),
 	xml.elem("image", {
 		source = "$imagefile",
 		width = TilesetW,
@@ -169,28 +213,63 @@ local TilesetXML = xml.elem("tileset", {
 	})
 })
 
-local function BuildTilesXML(framesbase, stride, c1, r1, cs, rs)
-	local frames = {}
-	for id1 = r1*TilesetCs + c1, (r1+rs-1)*TilesetCs + c1, TilesetCs do
-		for id = id1, id1 + cs - stride, stride do
-			for f = 2, #framesbase, 2 do
-				local tileid = id + framesbase[f-1]
-				local duration = framesbase[f]
-				frames[#frames+1] = XML_Frame({tileid=tileid, duration=duration})
-			end
-			TilesetXML:add_child(XML_Tile({id=id, XML_Animation(frames)}))
-			tablex.clear(frames)
+local Tileset_TerrainsXML = TilesetXML:child_with_name("terraintypes")
+
+local function BuildTerrainsXML(typ, c1, r1, cs, rs, cstride, rstride)
+	for id1 = r1*TilesetCs + c1, (r1+rs-rstride)*TilesetCs + c1, rstride*TilesetCs do
+		for id = id1, id1 + cs - cstride, cstride do
+			Tileset_TerrainsXML:add_child(XML_Terrain({name=typ..id, tile=id}))
 		end
-		id1 = id1 + TilesetCs
 	end
 end
 
-BuildTilesXML(Tileset_TileAnimFramesBase, 1,
-	Tileset_TileAnimsC, Tileset_TileAnimsR,
-	Tileset_TileAnimsCs*2/#Tileset_TileAnimFramesBase, Tileset_TileAnimsRs)
-BuildTilesXML(Tileset_WaterAnimFramesBase, 3,
+local function BuildTilesXML(c1, r1, cs, rs, cstride, rstride, framesbase)
+	local frames = {}
+	for id1 = r1*TilesetCs + c1, (r1+rs-rstride)*TilesetCs + c1, rstride*TilesetCs do
+		for id = id1, id1 + cs - cstride, cstride do
+			local tile = XML_Tile({
+				id = id,
+				terrain = Tileset_TileTerrains[id],
+			})
+
+			if framesbase then
+				for f = 2, #framesbase, 2 do
+					local tileid = id + framesbase[f-1]
+					local duration = framesbase[f]
+					frames[#frames+1] = XML_Frame({tileid=tileid, duration=duration})
+				end
+				tile:add_child(XML_Animation(frames))
+			end
+
+			TilesetXML:add_child(tile)
+			tablex.clear(frames)
+		end
+	end
+end
+
+BuildTerrainsXML("Water",
 	Tileset_WaterAnimsC, Tileset_WaterAnimsR,
-	Tileset_WaterAnimsCs, Tileset_WaterAnimsRs)
+	1, Tileset_WaterAnimsRs,
+	1, Tileset_WaterAnimsRs/2)
+BuildTerrainsXML("Land",
+	Tileset_LandTilesC, Tileset_LandTilesR,
+	Tileset_LandTilesCs, 1,
+	1, 1)
+
+BuildTilesXML(
+	Tileset_TileAnimsC, Tileset_TileAnimsR,
+	3, Tileset_TileAnimsRs,
+	1, 1,
+	Tileset_TileAnimFramesBase)
+BuildTilesXML(
+	Tileset_WaterAnimsC, Tileset_WaterAnimsR,
+	Tileset_WaterAnimsCs, Tileset_WaterAnimsRs,
+	3, 1,
+	Tileset_WaterAnimFramesBase)
+BuildTilesXML(
+	Tileset_LandTilesC, Tileset_LandTilesR,
+	Tileset_LandTilesCs, Tileset_LandTilesRs,
+	1, 1)
 
 local RM2k_BlockW = TileSize*3
 local RM2k_BlockH = TileSize*4
