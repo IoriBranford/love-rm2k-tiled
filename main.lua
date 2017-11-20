@@ -1,5 +1,6 @@
 local pl = require "pl.import_into"()
 local xml = pl.xml
+local tablex = pl.tablex
 
 local pcall = pcall
 local love_image_newImageData = love.image.newImageData
@@ -7,48 +8,95 @@ local love_image_newImageData = love.image.newImageData
 local TileSize = 16
 local MiniTileSize = TileSize/2
 
-local Tileset_WaterAnimsC = 18
-local Tileset_WaterAnimsR = 2
-local Tileset_WaterAnimsCs = 6
-local Tileset_WaterAnimsRs = 46
+local Tileset_WaterAnimsC = 12	--TG2: 18
+local Tileset_WaterAnimsR = 1	--TG2: 2
+local Tileset_WaterAnimsCs = 12	-- TG2:6
+local Tileset_WaterAnimsRs = 8	-- TG2:46
 local Tileset_WaterAnimsX = TileSize*Tileset_WaterAnimsC
 local Tileset_WaterAnimsY = TileSize*Tileset_WaterAnimsR
 local Tileset_WaterAnimsW = TileSize*Tileset_WaterAnimsCs
 local Tileset_WaterAnimsH = TileSize*Tileset_WaterAnimsRs
 
-local Tileset_TileAnimsC = 18
+local Tileset_TileAnimsC = 12 	-- TG2: 18
 local Tileset_TileAnimsR = 0
-local Tileset_TileAnimsCs = 6
-local Tileset_TileAnimsRs = 2
+local Tileset_TileAnimsCs = 12	-- TG2: 6
+local Tileset_TileAnimsRs = 1	-- TG2: 2
 local Tileset_TileAnimsX = TileSize*Tileset_TileAnimsC
 local Tileset_TileAnimsY = TileSize*Tileset_TileAnimsR
 local Tileset_TileAnimsW = TileSize*Tileset_TileAnimsCs
 local Tileset_TileAnimsH = TileSize*Tileset_TileAnimsRs
 
-local Tileset_LandTilesX = TileSize*6
-local Tileset_LandTilesY = TileSize*0
+local Tileset_LandTilesC = 12	-- TG2: 6
+local Tileset_LandTilesR = 9	-- TG2: 0
 local Tileset_LandTilesCs = 12
-local Tileset_LandTilesRs = 48
+local Tileset_LandTilesRs = 15	-- TG2: 48
+local Tileset_LandTilesX = TileSize*Tileset_LandTilesC
+local Tileset_LandTilesY = TileSize*Tileset_LandTilesR
 local Tileset_LandTilesW = TileSize*Tileset_LandTilesCs
 local Tileset_LandTilesH = TileSize*Tileset_LandTilesRs
 
 local Tileset_LoTilesX = TileSize*0
 local Tileset_LoTilesY = TileSize*0
-local Tileset_HiTilesX = TileSize*0
-local Tileset_HiTilesY = TileSize*24
+local Tileset_HiTilesC = 6	-- TG2: 0
+local Tileset_HiTilesR = 0	-- TG2: 24
+local Tileset_HiTilesX = TileSize*Tileset_HiTilesC
+local Tileset_HiTilesY = TileSize*Tileset_HiTilesR
 local Tileset_CombinedPagesCs = 6
 local Tileset_CombinedPagesRs = 24
 local Tileset_CombinedPagesW = TileSize*Tileset_CombinedPagesCs
 local Tileset_CombinedPagesH = TileSize*Tileset_CombinedPagesRs
 
-local TilesetCs = Tileset_CombinedPagesCs + Tileset_LandTilesCs + Tileset_TileAnimsCs
-local TilesetRs = Tileset_LandTilesRs
+local TilesetCs = 2*Tileset_CombinedPagesCs + Tileset_LandTilesCs -- TG2: Tileset_CombinedPagesCs + Tileset_LandTilesCs + Tileset_TileAnimsCs
+local TilesetRs = Tileset_CombinedPagesRs --TG2: Tileset_LandTilesRs
 local TilesetN = TilesetCs*TilesetRs
 local TilesetW = TileSize*TilesetCs
 local TilesetH = TileSize*TilesetRs
 
 local Tileset_WaterAnimsT = Tileset_WaterAnimsR*TilesetCs+Tileset_WaterAnimsC
 
+--Terrain granularity 2
+local Tileset_LandTileCorners = {
+	'ia','he','ve','ct', 'he','he','ct','ct', 'he','ia','ct','ve',
+	've','ct','ve','ct', 'ct','ct','ct','ct', 'ct','ve','ct','ve',
+	've','ct','ia','he', 'ct','ct','he','he', 'ct','ve','he','ia',
+	'xa','ct','ct','ct', 'ct','xa','ct','ct', 'ct','ct','xa','ct',
+	'ct','ct','ct','xa', 'xa','ct','ct','xa', 'ct','xa','xa','ct'
+}
+
+local Tileset_WaterAnimCorners = {}
+for e = 1,2 do
+	local landcorners = Tileset_LandTileCorners
+	local watercorners = Tileset_WaterAnimCorners
+	for i = 4, #Tileset_LandTileCorners, 4 do
+		for f = 1,3 do
+			for j = -3,0 do
+				local corner = landcorners[i+j]
+				if corner ~= 'ct' then
+					corner = e..corner
+				end
+
+				watercorners[#watercorners+1] = corner..f
+			end
+		end
+	end
+end
+
+local Tileset_TileAnimFramesBase = {
+	0, 125,
+	3, 125,
+	6, 125,
+	9, 125
+}
+
+local Tileset_WaterAnimFramesBase = {
+	0, 125,
+	1, 125,
+	2, 125,
+	1, 125
+}
+
+--Terrain granularity 1
+--[[
 local Tileset_LandTileCorners = {
 	'du','du','du','du', 'ct','ct','ct','ct', 'xa','ct','ct','ct', 'ct','xa','ct','ct',
 	'xa','xa','ct','ct', 'ct','ct','ct','xa', 'xa','ct','ct','xa', 'ct','xa','ct','xa',
@@ -65,18 +113,16 @@ local Tileset_LandTileCorners = {
 }
 
 local Tileset_WaterAnimCorners = {
-	'ct1', 'ct1', 'ct1', 'ct1', 'ct1', 'ct1', 'ct1', 'ct1',
-	'ct2', 'ct2', 'ct2', 'ct2', 'ct2', 'ct2', 'ct2', 'ct2',
-	'ct3', 'ct3', 'ct3', 'ct3', 'ct3', 'ct3', 'ct3', 'ct3',
-	'1ia1', '1ia1', '1ia1', '1ia1', '2ia1', '2ia1', '2ia1', '2ia1',
-	'1ia2', '1ia2', '1ia2', '1ia2', '2ia2', '2ia2', '2ia2', '2ia2',
-	'1ia3', '1ia3', '1ia3', '1ia3', '2ia3', '2ia3', '2ia3', '2ia3',
+	'ct1','ct1','ct1','ct1', 'ct2','ct2','ct2','ct2', 'ct3','ct3','ct3','ct3',
+	'ct1','ct1','ct1','ct1', 'ct2','ct2','ct2','ct2', 'ct3','ct3','ct3','ct3',
+	'1ia1','1ia1','1ia1','1ia1', '1ia2','1ia2','1ia2','1ia2', '1ia3','1ia3','1ia3','1ia3',
+	'2ia1','2ia1','2ia1','2ia1', '2ia2','2ia2','2ia2','2ia2', '2ia3','2ia3','2ia3','2ia3',
 }
-for i = 12, #Tileset_LandTileCorners-4, 4 do
+for e = 1,2 do
 	local landcorners = Tileset_LandTileCorners
 	local watercorners = Tileset_WaterAnimCorners
-	for f = 1,3 do
-		for e = 1,2 do
+	for i = 12, #Tileset_LandTileCorners-4, 4 do
+		for f = 1,3 do
 			for j = -3,0 do
 				local corner = landcorners[i+j]
 				if corner == 'sh' then
@@ -105,44 +151,46 @@ local Tileset_WaterAnimFramesBase = {
 	4, 125,
 	2, 125
 }
+]]
 
-local XML_Tileset, XML_Image, XML_Tile, XML_Animation, XML_Frame
-	= xml.tags('tileset, image, tile, animation, frame')
+local XML_Tile, XML_Animation, XML_Frame = xml.tags('tile, animation, frame')
+local XML_Terrain = xml.tags('terrain')
 
-local TilesetXML = XML_Tileset({
+local TilesetXML = xml.elem("tileset", {
 	name = "$tilesetname",
 	tilewidth = TileSize,
 	tileheight = TileSize,
 	tilecount = TilesetN,
 	columns = TilesetCs,
-	XML_Image({
+	xml.elem("image", {
 		source = "$imagefile",
 		width = TilesetW,
 		height = TilesetH
 	})
 })
 
-for id = Tileset_TileAnimsC, Tileset_TileAnimsC + 2 do
+local function BuildTilesXML(framesbase, stride, c1, r1, cs, rs)
 	local frames = {}
-	for f = 2, #Tileset_TileAnimFramesBase, 2 do
-		local tileid = id + Tileset_TileAnimFramesBase[f-1]
-		local duration = Tileset_TileAnimFramesBase[f]
-		frames[#frames+1] = XML_Frame({tileid=tileid, duration=duration})
+	for id1 = r1*TilesetCs + c1, (r1+rs-1)*TilesetCs + c1, TilesetCs do
+		for id = id1, id1 + cs - stride, stride do
+			for f = 2, #framesbase, 2 do
+				local tileid = id + framesbase[f-1]
+				local duration = framesbase[f]
+				frames[#frames+1] = XML_Frame({tileid=tileid, duration=duration})
+			end
+			TilesetXML:add_child(XML_Tile({id=id, XML_Animation(frames)}))
+			tablex.clear(frames)
+		end
+		id1 = id1 + TilesetCs
 	end
-	TilesetXML:add_child(XML_Tile({id=id, XML_Animation(frames)}))
 end
 
-for id1 = Tileset_WaterAnimsT, Tileset_WaterAnimsT + TilesetCs*(Tileset_WaterAnimsRs-1), TilesetCs do
-	for id = id1, id1 + 1 do
-		local frames = {}
-		for f = 2, #Tileset_WaterAnimFramesBase, 2 do
-			local tileid = id + Tileset_WaterAnimFramesBase[f-1]
-			local duration = Tileset_WaterAnimFramesBase[f]
-			frames[#frames+1] = XML_Frame({tileid=tileid, duration=duration})
-		end
-		TilesetXML:add_child(XML_Tile({id=id, XML_Animation(frames)}))
-	end
-end
+BuildTilesXML(Tileset_TileAnimFramesBase, 1,
+	Tileset_TileAnimsC, Tileset_TileAnimsR,
+	Tileset_TileAnimsCs*2/#Tileset_TileAnimFramesBase, Tileset_TileAnimsRs)
+BuildTilesXML(Tileset_WaterAnimFramesBase, 3,
+	Tileset_WaterAnimsC, Tileset_WaterAnimsR,
+	Tileset_WaterAnimsCs, Tileset_WaterAnimsRs)
 
 local RM2k_BlockW = TileSize*3
 local RM2k_BlockH = TileSize*4
@@ -327,7 +375,7 @@ local function buildTileset(chipsetfile)
 	end
 
 	local wateranims = buildTilesFromBlock(chipsetdata, RM2k_WaterAnimBlockMTXY, Tileset_WaterAnimCorners)
-	wateranims = combineCutouts(wateranims, 6, 48)
+	wateranims = combineCutouts(wateranims, Tileset_WaterAnimsCs, Tileset_WaterAnimsRs)
 
 	local tileanims = cutout(chipsetdata, RM2k_TileAnimsXY, TileSize, TileSize)
 	tileanims = combineCutouts(tileanims, Tileset_TileAnimsCs, Tileset_TileAnimsRs)
