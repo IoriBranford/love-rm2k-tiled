@@ -1,5 +1,6 @@
 local pl = require "pl.import_into"()
 local xml = pl.xml
+local path = pl.path
 local tablex = pl.tablex
 
 local pcall = pcall
@@ -430,19 +431,11 @@ local function buildTilesFromBlock(block, minitilexys, tilecorners)
 	return blocktiles
 end
 
---- Function equivalent to basename in POSIX systems
---- Copyright 2011-2014, Gianluca Fiore © <forod.g@gmail.com>
---@param str the path string
-local function basename(str)
-	local name = string.gsub(str, "(.*/)(.*)", "%2")
-	return name
-end
-
 local function buildTileset(chipsetfile)
 	if love.filesystem.isDirectory(chipsetfile) then
 		local files = love.filesystem.getDirectoryItems(chipsetfile)
 		for i = 1, #files do
-			buildTileset(chipsetfile..'/'..files[i])
+			buildTileset(path.join(chipsetfile, files[i]))
 		end
 		return
 	end
@@ -486,7 +479,7 @@ local function buildTileset(chipsetfile)
 	tileset:paste(wateranims, Tileset_WaterAnimsX, Tileset_WaterAnimsY, 0, 0, Tileset_WaterAnimsW, Tileset_WaterAnimsH)
 	tileset:paste(tileanims, Tileset_TileAnimsX, Tileset_TileAnimsY, 0, 0, Tileset_TileAnimsW, Tileset_TileAnimsH)
 
-	local tilesetname = basename(chipsetfile)
+	local tilesetname = path.basename(chipsetfile):gsub(path.extension(chipsetfile), '')
 	local imagefile = tilesetname..".png"
 	tileset:encode("png", imagefile)
 
