@@ -1,4 +1,6 @@
 local pl = require "pl.import_into"()
+local pretty = pl.pretty
+local lapp = pl.lapp
 local xml = pl.xml
 local path = pl.path
 local tablex = pl.tablex
@@ -8,213 +10,321 @@ local love_image_newImageData = love.image.newImageData
 
 local TileSize = 16
 local MiniTileSize = TileSize/2
-
-local Tileset_WaterAnimsC = 12	--TG2: 18
-local Tileset_WaterAnimsR = 1	--TG2: 2
-local Tileset_WaterAnimsCs = 12	-- TG2:6
-local Tileset_WaterAnimsRs = 8	-- TG2:46
-local Tileset_WaterAnimsX = TileSize*Tileset_WaterAnimsC
-local Tileset_WaterAnimsY = TileSize*Tileset_WaterAnimsR
-local Tileset_WaterAnimsW = TileSize*Tileset_WaterAnimsCs
-local Tileset_WaterAnimsH = TileSize*Tileset_WaterAnimsRs
-
-local Tileset_TileAnimsC = 12 	-- TG2: 18
-local Tileset_TileAnimsR = 0
-local Tileset_TileAnimsCs = 12	-- TG2: 6
-local Tileset_TileAnimsRs = 1	-- TG2: 2
-local Tileset_TileAnimsX = TileSize*Tileset_TileAnimsC
-local Tileset_TileAnimsY = TileSize*Tileset_TileAnimsR
-local Tileset_TileAnimsW = TileSize*Tileset_TileAnimsCs
-local Tileset_TileAnimsH = TileSize*Tileset_TileAnimsRs
-
-local Tileset_LandTilesC = 12	-- TG2: 6
-local Tileset_LandTilesR = 9	-- TG2: 0
-local Tileset_LandTilesCs = 12
-local Tileset_LandTilesRs = 15	-- TG2: 48
-local Tileset_LandTilesX = TileSize*Tileset_LandTilesC
-local Tileset_LandTilesY = TileSize*Tileset_LandTilesR
-local Tileset_LandTilesW = TileSize*Tileset_LandTilesCs
-local Tileset_LandTilesH = TileSize*Tileset_LandTilesRs
-
-local Tileset_LoTilesX = TileSize*0
-local Tileset_LoTilesY = TileSize*0
-local Tileset_HiTilesC = 6	-- TG2: 0
-local Tileset_HiTilesR = 0	-- TG2: 24
-local Tileset_HiTilesX = TileSize*Tileset_HiTilesC
-local Tileset_HiTilesY = TileSize*Tileset_HiTilesR
 local Tileset_CombinedPagesCs = 6
 local Tileset_CombinedPagesRs = 24
 local Tileset_CombinedPagesW = TileSize*Tileset_CombinedPagesCs
 local Tileset_CombinedPagesH = TileSize*Tileset_CombinedPagesRs
 
-local TilesetCs = 2*Tileset_CombinedPagesCs + Tileset_LandTilesCs -- TG2: Tileset_CombinedPagesCs + Tileset_LandTilesCs + Tileset_TileAnimsCs
-local TilesetRs = Tileset_CombinedPagesRs --TG2: Tileset_LandTilesRs
-local TilesetN = TilesetCs*TilesetRs
-local TilesetW = TileSize*TilesetCs
-local TilesetH = TileSize*TilesetRs
+local Tileset_WaterAnimsC
+local Tileset_WaterAnimsR
+local Tileset_WaterAnimsCs
+local Tileset_WaterAnimsRs
+local Tileset_TileAnimsC
+local Tileset_TileAnimsR
+local Tileset_TileAnimsCs
+local Tileset_TileAnimsRs
+local Tileset_GroundTilesC
+local Tileset_GroundTilesR
+local Tileset_GroundTilesCs
+local Tileset_GroundTilesRs
+local Tileset_LoTilesX
+local Tileset_LoTilesY
+local Tileset_HiTilesC
+local Tileset_HiTilesR
 
-local Tileset_WaterAnimsT = Tileset_WaterAnimsR*TilesetCs+Tileset_WaterAnimsC
+local Tileset_GroundTileCorners
+local Tileset_WaterAnimCorners
+local Tileset_TileAnimFramesBase
+local Tileset_WaterAnimFramesBase
 
---Terrain granularity 2
-local Tileset_LandTileCorners = {
-	'ia','he','ve','ct', 'he','he','ct','ct', 'he','ia','ct','ve',
-	've','ct','ve','ct', 'ct','ct','ct','ct', 'ct','ve','ct','ve',
-	've','ct','ia','he', 'ct','ct','he','he', 'ct','ve','he','ia',
-	'xa','ct','ct','ct', 'ct','xa','ct','ct', 'ct','ct','xa','ct',
-	'ct','ct','ct','xa', 'xa','ct','ct','xa', 'ct','xa','xa','ct'
-}
+local Tileset_TileTerrains
 
-local Tileset_WaterAnimCorners = {}
-for e = 1,2 do
-	local landcorners = Tileset_LandTileCorners
-	local watercorners = Tileset_WaterAnimCorners
-	for i = 4, #Tileset_LandTileCorners, 4 do
-		for f = 1,3 do
-			for j = -3,0 do
-				local corner = landcorners[i+j]
-				if corner ~= 'ct' then
-					corner = e..corner
+local TerrainGranularity
+
+--[[ Terrain granularity 2, using terrains
+	LLLLLLHHHHHHAAAAAAAAAAAA
+	LLLLLLHHHHHHWWWWWWWWWWWW
+	LLLLLLHHHHHHWWWWWWWWWWWW
+	LLLLLLHHHHHHWWWWWWWWWWWW
+	LLLLLLHHHHHHWWWWWWWWWWWW
+	LLLLLLHHHHHHwwwwwwwwwwww
+	LLLLLLHHHHHHwwwwwwwwwwww
+	LLLLLLHHHHHHwwwwwwwwwwww
+	LLLLLLHHHHHHwwwwwwwwwwww
+	LLLLLLHHHHHHGGGGGGGGGGGG
+	LLLLLLHHHHHHGGGGGGGGGGGG
+	LLLLLLHHHHHHGGGGGGGGGGGG
+	LLLLLLHHHHHHGGGGGGGGGGGG
+	LLLLLLHHHHHHGGGGGGGGGGGG
+	LLLLLLHHHHHHGGGGGGGGGGGG
+	LLLLLLHHHHHHGGGGGGGGGGGG
+	LLLLLLHHHHHHGGGGGGGGGGGG
+	LLLLLLHHHHHHGGGGGGGGGGGG
+	LLLLLLHHHHHHGGGGGGGGGGGG
+	LLLLLLHHHHHHGGGGGGGGGGGG
+	LLLLLLHHHHHHGGGGGGGGGGGG
+	LLLLLLHHHHHHGGGGGGGGGGGG
+	LLLLLLHHHHHHGGGGGGGGGGGG
+	LLLLLLHHHHHHGGGGGGGGGGGG
+--]]
+
+local function Init_Granularity2()
+	Tileset_WaterAnimsC = 12
+	Tileset_WaterAnimsR = 1
+	Tileset_WaterAnimsCs = 12
+	Tileset_WaterAnimsRs = 8
+	Tileset_TileAnimsC = 12
+	Tileset_TileAnimsR = 0
+	Tileset_TileAnimsCs = 12
+	Tileset_TileAnimsRs = 1
+	Tileset_GroundTilesC = 12
+	Tileset_GroundTilesR = 9
+	Tileset_GroundTilesCs = 12
+	Tileset_GroundTilesRs = 15
+	Tileset_LoTilesX = TileSize*0
+	Tileset_LoTilesY = TileSize*0
+	Tileset_HiTilesC = 6
+	Tileset_HiTilesR = 0
+
+	TilesetCs = 2*Tileset_CombinedPagesCs + Tileset_GroundTilesCs
+	TilesetRs = Tileset_CombinedPagesRs
+
+	Tileset_GroundTileCorners = {
+		'ia','he','ve','ct', 'he','he','ct','ct', 'he','ia','ct','ve',
+		've','ct','ve','ct', 'ct','ct','ct','ct', 'ct','ve','ct','ve',
+		've','ct','ia','he', 'ct','ct','he','he', 'ct','ve','he','ia',
+		'xa','ct','ct','ct', 'ct','xa','ct','ct', 'ct','ct','xa','ct',
+		'ct','ct','ct','xa', 'xa','ct','ct','xa', 'ct','xa','xa','ct'
+	}
+
+	Tileset_WaterAnimCorners = {}
+	for e = 1,2 do
+		local landcorners = Tileset_GroundTileCorners
+		local watercorners = Tileset_WaterAnimCorners
+		for i = 4, #Tileset_GroundTileCorners, 4 do
+			for f = 1,3 do
+				for j = -3,0 do
+					local corner = landcorners[i+j]
+					if corner ~= 'ct' then
+						corner = e..corner
+					end
+
+					watercorners[#watercorners+1] = corner..f
 				end
-
-				watercorners[#watercorners+1] = corner..f
+			end
+		end
+		for f = 1,3 do
+			for i=1,4 do
+				watercorners[#watercorners+1] = 'ct'..f
 			end
 		end
 	end
-	for f = 1,3 do
-		for i=1,4 do
-			watercorners[#watercorners+1] = 'ct'..f
-		end
-	end
-end
 
-local Tileset_TileAnimFramesBase = {
-	0, 125,
-	3, 125,
-	6, 125,
-	9, 125
-}
+	Tileset_TileAnimFramesBase = {
+		0, 125,
+		3, 125,
+		6, 125,
+		9, 125
+	}
 
-local Tileset_WaterAnimFramesBase = {
-	0, 125,
-	1, 125,
-	2, 125,
-	1, 125
-}
+	Tileset_WaterAnimFramesBase = {
+		0, 125,
+		1, 125,
+		2, 125,
+		1, 125
+	}
 
-local Tileset_TileTerrains = {}
-local function BuildTileTerrain(t, tilecorners, c1, r1, cs, rs)
-	local i = 4
-	for id1 = r1*TilesetCs + c1, (r1+rs-1)*TilesetCs + c1, TilesetCs do
-		for id = id1, id1 + cs - 1 do
-			local nw, ne, sw, se =
+	Tileset_TileTerrains = {}
+	local function BuildTileTerrain(t, tilecorners, c1, r1, cs, rs)
+		local i = 4
+		for id1 = r1*TilesetCs + c1, (r1+rs-1)*TilesetCs + c1, TilesetCs do
+			for id = id1, id1 + cs - 1 do
+				local nw, ne, sw, se =
 				tilecorners[i-3],
 				tilecorners[i-2],
 				tilecorners[i-1],
 				tilecorners[i-0]
 
-			local terrain = "%s,%s,%s,%s"
-			terrain = terrain:format(
+				local terrain = "%s,%s,%s,%s"
+				terrain = terrain:format(
 				(nw == 'ct' or nw == 'ct1') and t or '',
 				(ne == 'ct' or ne == 'ct1') and t or '',
 				(sw == 'ct' or sw == 'ct1') and t or '',
 				(se == 'ct' or se == 'ct1') and t or ''
-			)
-			Tileset_TileTerrains[id] = terrain
-			i = i + 4
-			if i > #tilecorners then
-				return
+				)
+				Tileset_TileTerrains[id] = terrain
+				i = i + 4
+				if i > #tilecorners then
+					return
+				end
 			end
 		end
 	end
-end
 
-for t = 0,1 do
-	BuildTileTerrain(t, Tileset_WaterAnimCorners,
+	for t = 0,1 do
+		BuildTileTerrain(t, Tileset_WaterAnimCorners,
 		Tileset_WaterAnimsC, Tileset_WaterAnimsR + t*Tileset_WaterAnimsRs/2,
 		Tileset_WaterAnimsCs, Tileset_WaterAnimsRs/2)
-end
-for t = 2, 13 do
-	BuildTileTerrain(t, Tileset_LandTileCorners,
-		Tileset_LandTilesC+t-2, Tileset_LandTilesR,
-		1, Tileset_LandTilesRs)
-end
-
---Terrain granularity 1
---[[
-local Tileset_LandTileCorners = {
-	'du','du','du','du', 'ct','ct','ct','ct', 'xa','ct','ct','ct', 'ct','xa','ct','ct',
-	'xa','xa','ct','ct', 'ct','ct','ct','xa', 'xa','ct','ct','xa', 'ct','xa','ct','xa',
-	'xa','xa','ct','xa', 'ct','ct','xa','ct', 'xa','ct','xa','ct', 'ct','xa','xa','ct',
-	'xa','xa','xa','ct', 'ct','ct','xa','xa', 'xa','ct','xa','xa', 'ct','xa','xa','xa',
-	'xa','xa','xa','xa', 've','ct','ve','ct', 've','xa','ve','ct', 've','ct','ve','xa',
-	've','xa','ve','xa', 'he','he','ct','ct', 'he','he','ct','xa', 'he','he','xa','ct',
-	'he','he','xa','xa', 'ct','ve','ct','ve', 'ct','ve','xa','ve', 'xa','ve','ct','ve',
-	'xa','ve','xa','ve', 'ct','ct','he','he', 'xa','ct','he','he', 'ct','xa','he','he',
-	'xa','xa','he','he', 've','ve','ve','ve', 'he','he','he','he', 'ia','he','ve','ct',
-	'ia','he','ve','xa', 'he','ia','ct','ve', 'he','ia','xa','ve', 'ct','ve','he','ia',
-	'xa','ve','he','ia', 've','ct','ia','he', 've','xa','ia','he', 'sh','sh','ve','ve',
-	'sh','he','sh','he', 've','ve','sh','sh', 'he','sh','he','sh', 'sh','sh','sh','sh'
-}
-
-local Tileset_WaterAnimCorners = {
-	'ct1','ct1','ct1','ct1', 'ct2','ct2','ct2','ct2', 'ct3','ct3','ct3','ct3',
-	'ct1','ct1','ct1','ct1', 'ct2','ct2','ct2','ct2', 'ct3','ct3','ct3','ct3',
-	'1ia1','1ia1','1ia1','1ia1', '1ia2','1ia2','1ia2','1ia2', '1ia3','1ia3','1ia3','1ia3',
-	'2ia1','2ia1','2ia1','2ia1', '2ia2','2ia2','2ia2','2ia2', '2ia3','2ia3','2ia3','2ia3',
-}
-for e = 1,2 do
-	local landcorners = Tileset_LandTileCorners
-	local watercorners = Tileset_WaterAnimCorners
-	for i = 12, #Tileset_LandTileCorners-4, 4 do
-		for f = 1,3 do
-			for j = -3,0 do
-				local corner = landcorners[i+j]
-				if corner == 'sh' then
-					corner = 'ia'
-				end
-				if corner ~= 'ct' then
-					corner = e..corner
-				end
-
-				watercorners[#watercorners+1] = corner..f
-			end
-		end
+	end
+	for t = 2, 13 do
+		BuildTileTerrain(t, Tileset_GroundTileCorners,
+		Tileset_GroundTilesC+t-2, Tileset_GroundTilesR,
+		1, Tileset_GroundTilesRs)
 	end
 end
 
-local Tileset_TileAnimFramesBase = {
-	TilesetCs*0 + 0, 125,
-	TilesetCs*0 + 3, 125,
-	TilesetCs*1 + 0, 125,
-	TilesetCs*1 + 3, 125
-}
+--[[ Terrain granularity 1, using Wang tiles
+	LLLLLLGGGGGGGGGGGGAAAAAA
+	LLLLLLGGGGGGGGGGGGAAAAAA
+	LLLLLLGGGGGGGGGGGGWWWWWW
+	LLLLLLGGGGGGGGGGGGWWWWWW
+	LLLLLLGGGGGGGGGGGGWWWWWW
+	LLLLLLGGGGGGGGGGGGWWWWWW
+	LLLLLLGGGGGGGGGGGGWWWWWW
+	LLLLLLGGGGGGGGGGGGWWWWWW
+	LLLLLLGGGGGGGGGGGGWWWWWW
+	LLLLLLGGGGGGGGGGGGWWWWWW
+	LLLLLLGGGGGGGGGGGGWWWWWW
+	LLLLLLGGGGGGGGGGGGWWWWWW
+	LLLLLLGGGGGGGGGGGGWWWWWW
+	LLLLLLGGGGGGGGGGGGWWWWWW
+	LLLLLLGGGGGGGGGGGGWWWWWW
+	LLLLLLGGGGGGGGGGGGWWWWWW
+	LLLLLLGGGGGGGGGGGGWWWWWW
+	LLLLLLGGGGGGGGGGGGWWWWWW
+	LLLLLLGGGGGGGGGGGGWWWWWW
+	LLLLLLGGGGGGGGGGGGWWWWWW
+	LLLLLLGGGGGGGGGGGGWWWWWW
+	LLLLLLGGGGGGGGGGGGWWWWWW
+	LLLLLLGGGGGGGGGGGGWWWWWW
+	LLLLLLGGGGGGGGGGGGWWWWWW
+	HHHHHHGGGGGGGGGGGGWWWWWW
+	HHHHHHGGGGGGGGGGGGWWWWWW
+	HHHHHHGGGGGGGGGGGGwwwwww
+	HHHHHHGGGGGGGGGGGGwwwwww
+	HHHHHHGGGGGGGGGGGGwwwwww
+	HHHHHHGGGGGGGGGGGGwwwwww
+	HHHHHHGGGGGGGGGGGGwwwwww
+	HHHHHHGGGGGGGGGGGGwwwwww
+	HHHHHHGGGGGGGGGGGGwwwwww
+	HHHHHHGGGGGGGGGGGGwwwwww
+	HHHHHHGGGGGGGGGGGGwwwwww
+	HHHHHHGGGGGGGGGGGGwwwwww
+	HHHHHHGGGGGGGGGGGGwwwwww
+	HHHHHHGGGGGGGGGGGGwwwwww
+	HHHHHHGGGGGGGGGGGGwwwwww
+	HHHHHHGGGGGGGGGGGGwwwwww
+	HHHHHHGGGGGGGGGGGGwwwwww
+	HHHHHHGGGGGGGGGGGGwwwwww
+	HHHHHHGGGGGGGGGGGGwwwwww
+	HHHHHHGGGGGGGGGGGGwwwwww
+	HHHHHHGGGGGGGGGGGGwwwwww
+	HHHHHHGGGGGGGGGGGGwwwwww
+	HHHHHHGGGGGGGGGGGGwwwwww
+	HHHHHHGGGGGGGGGGGGwwwwww
+--]]
 
-local Tileset_WaterAnimFramesBase = {
-	0, 125,
-	2, 125,
-	4, 125,
-	2, 125
-}
-]]
+local function Init_Granularity1()
+	Tileset_WaterAnimsC = 18
+	Tileset_WaterAnimsR = 2
+	Tileset_WaterAnimsCs = 6
+	Tileset_WaterAnimsRs = 46
+	Tileset_TileAnimsC = 18
+	Tileset_TileAnimsR = 0
+	Tileset_TileAnimsCs = 6
+	Tileset_TileAnimsRs = 2
+	Tileset_GroundTilesC = 6
+	Tileset_GroundTilesR = 0
+	Tileset_GroundTilesCs = 12
+	Tileset_GroundTilesRs = 48
+	Tileset_LoTilesX = TileSize*0
+	Tileset_LoTilesY = TileSize*0
+	Tileset_HiTilesC = 0
+	Tileset_HiTilesR = 24
+
+	TilesetCs = Tileset_CombinedPagesCs + Tileset_GroundTilesCs + Tileset_TileAnimsCs
+	TilesetRs = Tileset_GroundTilesRs
+
+	Tileset_GroundTileCorners = {
+		'du','du','du','du', 'ct','ct','ct','ct', 'xa','ct','ct','ct', 'ct','xa','ct','ct',
+		'xa','xa','ct','ct', 'ct','ct','ct','xa', 'xa','ct','ct','xa', 'ct','xa','ct','xa',
+		'xa','xa','ct','xa', 'ct','ct','xa','ct', 'xa','ct','xa','ct', 'ct','xa','xa','ct',
+		'xa','xa','xa','ct', 'ct','ct','xa','xa', 'xa','ct','xa','xa', 'ct','xa','xa','xa',
+		'xa','xa','xa','xa', 've','ct','ve','ct', 've','xa','ve','ct', 've','ct','ve','xa',
+		've','xa','ve','xa', 'he','he','ct','ct', 'he','he','ct','xa', 'he','he','xa','ct',
+		'he','he','xa','xa', 'ct','ve','ct','ve', 'ct','ve','xa','ve', 'xa','ve','ct','ve',
+		'xa','ve','xa','ve', 'ct','ct','he','he', 'xa','ct','he','he', 'ct','xa','he','he',
+		'xa','xa','he','he', 've','ve','ve','ve', 'he','he','he','he', 'ia','he','ve','ct',
+		'ia','he','ve','xa', 'he','ia','ct','ve', 'he','ia','xa','ve', 'ct','ve','he','ia',
+		'xa','ve','he','ia', 've','ct','ia','he', 've','xa','ia','he', 'sh','sh','ve','ve',
+		'sh','he','sh','he', 've','ve','sh','sh', 'he','sh','he','sh', 'sh','sh','sh','sh'
+	}
+
+	Tileset_WaterAnimCorners = {
+		'ct1','ct1','ct1','ct1', 'ct2','ct2','ct2','ct2', 'ct3','ct3','ct3','ct3',
+		'ct1','ct1','ct1','ct1', 'ct2','ct2','ct2','ct2', 'ct3','ct3','ct3','ct3',
+		'1ia1','1ia1','1ia1','1ia1', '1ia2','1ia2','1ia2','1ia2', '1ia3','1ia3','1ia3','1ia3',
+		'2ia1','2ia1','2ia1','2ia1', '2ia2','2ia2','2ia2','2ia2', '2ia3','2ia3','2ia3','2ia3',
+	}
+	for e = 1,2 do
+		local landcorners = Tileset_GroundTileCorners
+		local watercorners = Tileset_WaterAnimCorners
+		for i = 12, #Tileset_GroundTileCorners-4, 4 do
+			for f = 1,3 do
+				for j = -3,0 do
+					local corner = landcorners[i+j]
+					if corner == 'sh' then
+						corner = 'ia'
+					end
+					if corner ~= 'ct' then
+						corner = e..corner
+					end
+
+					watercorners[#watercorners+1] = corner..f
+				end
+			end
+		end
+	end
+
+	Tileset_TileAnimFramesBase = {
+		TilesetCs*0 + 0, 125,
+		TilesetCs*0 + 3, 125,
+		TilesetCs*1 + 0, 125,
+		TilesetCs*1 + 3, 125
+	}
+
+	Tileset_WaterAnimFramesBase = {
+		0, 125,
+		2, 125,
+		4, 125,
+		2, 125
+	}
+end
+
+local Tileset_WaterAnimsX
+local Tileset_WaterAnimsY
+local Tileset_WaterAnimsW
+local Tileset_WaterAnimsH
+local Tileset_TileAnimsX
+local Tileset_TileAnimsY
+local Tileset_TileAnimsW
+local Tileset_TileAnimsH
+local Tileset_GroundTilesX
+local Tileset_GroundTilesY
+local Tileset_GroundTilesW
+local Tileset_GroundTilesH
+local Tileset_HiTilesX
+local Tileset_HiTilesY
+local TilesetN
+local TilesetW
+local TilesetH
+local Tileset_WaterAnimsT
 
 local XML_Tile, XML_Animation, XML_Frame = xml.tags('tile, animation, frame')
 local XML_Terrain = xml.tags('terrain')
 
-local TilesetXML = xml.elem("tileset", {
-	name = "$tilesetname",
-	tilewidth = TileSize,
-	tileheight = TileSize,
-	tilecount = TilesetN,
-	columns = TilesetCs,
-	xml.elem("terraintypes"),
-	xml.elem("image", {
-		source = "$imagefile",
-		width = TilesetW,
-		height = TilesetH
-	})
-})
-
-local Tileset_TerrainsXML = TilesetXML:child_with_name("terraintypes")
+local TilesetXML
+local Tileset_TerrainsXML
 
 local function BuildTerrainsXML(typ, c1, r1, cs, rs, cstride, rstride)
 	for id1 = r1*TilesetCs + c1, (r1+rs-rstride)*TilesetCs + c1, rstride*TilesetCs do
@@ -226,51 +336,94 @@ end
 
 local function BuildTilesXML(c1, r1, cs, rs, cstride, rstride, framesbase)
 	local frames = {}
+	local tile = {}
+	local frame = {}
 	for id1 = r1*TilesetCs + c1, (r1+rs-rstride)*TilesetCs + c1, rstride*TilesetCs do
 		for id = id1, id1 + cs - cstride, cstride do
-			local tile = XML_Tile({
-				id = id,
-				terrain = Tileset_TileTerrains[id],
-			})
+			tile.id = id
+			tile.terrain = nil
+
+			if TerrainGranularity == 2 then
+				tile.terrain = Tileset_TileTerrains[id]
+			end
+
+			local tileelem = XML_Tile(tile)
 
 			if framesbase then
 				for f = 2, #framesbase, 2 do
-					local tileid = id + framesbase[f-1]
-					local duration = framesbase[f]
-					frames[#frames+1] = XML_Frame({tileid=tileid, duration=duration})
+					frame.tileid = id + framesbase[f-1]
+					frame.duration = framesbase[f]
+					frames[#frames+1] = XML_Frame(frame)
 				end
-				tile:add_child(XML_Animation(frames))
+				tileelem:add_child(XML_Animation(frames))
 			end
 
-			TilesetXML:add_child(tile)
+			TilesetXML:add_child(tileelem)
 			tablex.clear(frames)
 		end
 	end
 end
 
-BuildTerrainsXML("Water",
-	Tileset_WaterAnimsC, Tileset_WaterAnimsR,
-	1, Tileset_WaterAnimsRs,
-	1, Tileset_WaterAnimsRs/2)
-BuildTerrainsXML("Land",
-	Tileset_LandTilesC, Tileset_LandTilesR,
-	Tileset_LandTilesCs, 1,
-	1, 1)
+local function Init_Common()
+	Tileset_WaterAnimsX = TileSize*Tileset_WaterAnimsC
+	Tileset_WaterAnimsY = TileSize*Tileset_WaterAnimsR
+	Tileset_WaterAnimsW = TileSize*Tileset_WaterAnimsCs
+	Tileset_WaterAnimsH = TileSize*Tileset_WaterAnimsRs
+	Tileset_TileAnimsX = TileSize*Tileset_TileAnimsC
+	Tileset_TileAnimsY = TileSize*Tileset_TileAnimsR
+	Tileset_TileAnimsW = TileSize*Tileset_TileAnimsCs
+	Tileset_TileAnimsH = TileSize*Tileset_TileAnimsRs
+	Tileset_GroundTilesX = TileSize*Tileset_GroundTilesC
+	Tileset_GroundTilesY = TileSize*Tileset_GroundTilesR
+	Tileset_GroundTilesW = TileSize*Tileset_GroundTilesCs
+	Tileset_GroundTilesH = TileSize*Tileset_GroundTilesRs
+	Tileset_HiTilesX = TileSize*Tileset_HiTilesC
+	Tileset_HiTilesY = TileSize*Tileset_HiTilesR
+	TilesetN = TilesetCs*TilesetRs
+	TilesetW = TileSize*TilesetCs
+	TilesetH = TileSize*TilesetRs
+	Tileset_WaterAnimsT = Tileset_WaterAnimsR*TilesetCs+Tileset_WaterAnimsC
 
-BuildTilesXML(
-	Tileset_TileAnimsC, Tileset_TileAnimsR,
-	3, Tileset_TileAnimsRs,
-	1, 1,
-	Tileset_TileAnimFramesBase)
-BuildTilesXML(
-	Tileset_WaterAnimsC, Tileset_WaterAnimsR,
-	Tileset_WaterAnimsCs, Tileset_WaterAnimsRs,
-	3, 1,
-	Tileset_WaterAnimFramesBase)
-BuildTilesXML(
-	Tileset_LandTilesC, Tileset_LandTilesR,
-	Tileset_LandTilesCs, Tileset_LandTilesRs,
-	1, 1)
+	TilesetXML = xml.elem("tileset", {
+		name = "$tilesetname",
+		tilewidth = TileSize,
+		tileheight = TileSize,
+		tilecount = TilesetN,
+		columns = TilesetCs,
+		xml.elem("terraintypes"),
+		xml.elem("image", {
+			source = "$imagefile",
+			width = TilesetW,
+			height = TilesetH
+		})
+	})
+
+	Tileset_TerrainsXML = TilesetXML:child_with_name("terraintypes")
+
+	BuildTerrainsXML("Water",
+		Tileset_WaterAnimsC, Tileset_WaterAnimsR,
+		1, Tileset_WaterAnimsRs,
+		1, Tileset_WaterAnimsRs/2)
+	BuildTerrainsXML("Ground",
+		Tileset_GroundTilesC, Tileset_GroundTilesR,
+		Tileset_GroundTilesCs, 1,
+		1, 1)
+
+	BuildTilesXML(
+		Tileset_TileAnimsC, Tileset_TileAnimsR,
+		3, 1,
+		1, 1,
+		Tileset_TileAnimFramesBase)
+	BuildTilesXML(
+		Tileset_WaterAnimsC, Tileset_WaterAnimsR,
+		Tileset_WaterAnimsCs, Tileset_WaterAnimsRs,
+		3, 1,
+		Tileset_WaterAnimFramesBase)
+	BuildTilesXML(
+		Tileset_GroundTilesC, Tileset_GroundTilesR,
+		Tileset_GroundTilesCs, Tileset_GroundTilesRs,
+		1, 1)
+end
 
 local RM2k_BlockW = TileSize*3
 local RM2k_BlockH = TileSize*4
@@ -322,7 +475,7 @@ for y = 4,7 do
 	end
 end
 
-local RM2k_LandBlockXY = {
+local RM2k_GroundBlockXY = {
 	0*TileSize,8*TileSize,3*TileSize,8*TileSize,
 	0*TileSize,12*TileSize,3*TileSize,12*TileSize,
 	6*TileSize,0*TileSize,9*TileSize,0*TileSize,
@@ -331,7 +484,7 @@ local RM2k_LandBlockXY = {
 	6*TileSize,12*TileSize,9*TileSize,12*TileSize
 }
 
-local RM2k_LandBlockMTXY = {
+local RM2k_GroundBlockMTXY = {
 	['sh-nw']={0*MTS,MTS*0},['sh-ne']={1*MTS,MTS*0},['du-nw']={2*MTS,MTS*0},['du-ne']={3*MTS,MTS*0},['xa-nw']={4*MTS,MTS*0},['xa-ne']={5*MTS,MTS*0},
 	['sh-sw']={0*MTS,MTS*1},['sh-se']={1*MTS,MTS*1},['du-sw']={2*MTS,MTS*1},['du-se']={3*MTS,MTS*1},['xa-sw']={4*MTS,MTS*1},['xa-se']={5*MTS,MTS*1},
 	['ia-nw']={0*MTS,MTS*2},                        ['he-nw']={2*MTS,MTS*2},['he-ne']={3*MTS,MTS*2},                        ['ia-ne']={5*MTS,MTS*2},
@@ -356,7 +509,7 @@ local RM2k_HiTilePageXY = {
 local Base64_Alphabet='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
 
 local function Base64_enc(data)
-    return ((data:gsub('.', function(x) 
+    return ((data:gsub('.', function(x)
         local r,b='',x:byte()
         for i=8,1,-1 do r=r..(b%2^i-b%2^(i-1)>0 and '1' or '0') end
         return r;
@@ -452,13 +605,13 @@ local function buildTileset(chipsetfile)
 	local tileanims = cutout(chipsetdata, RM2k_TileAnimsXY, TileSize, TileSize)
 	tileanims = combineCutouts(tileanims, Tileset_TileAnimsCs, Tileset_TileAnimsRs)
 
-	local in_landblocks = cutout(chipsetdata, RM2k_LandBlockXY, RM2k_BlockW, RM2k_BlockH)
+	local in_landblocks = cutout(chipsetdata, RM2k_GroundBlockXY, RM2k_BlockW, RM2k_BlockH)
 	local landtiles = {}
 	for i=1, #in_landblocks do
-		local tiles = buildTilesFromBlock(in_landblocks[i], RM2k_LandBlockMTXY, Tileset_LandTileCorners)
-		landtiles[#landtiles+1] = combineCutouts(tiles, 1, Tileset_LandTilesRs)
+		local tiles = buildTilesFromBlock(in_landblocks[i], RM2k_GroundBlockMTXY, Tileset_GroundTileCorners)
+		landtiles[#landtiles+1] = combineCutouts(tiles, 1, Tileset_GroundTilesRs)
 	end
-	landtiles = combineCutouts(landtiles, Tileset_LandTilesCs, 1)
+	landtiles = combineCutouts(landtiles, Tileset_GroundTilesCs, 1)
 
 	local in_lotilepages = cutout(chipsetdata, RM2k_LoTilePageXY, RM2k_PageW, RM2k_PageH)
 	local in_hitilepages = cutout(chipsetdata, RM2k_HiTilePageXY, RM2k_PageW, RM2k_PageH)
@@ -475,7 +628,7 @@ local function buildTileset(chipsetfile)
 	local tileset = love_image_newImageData(TilesetW, TilesetH)
 	tileset:paste(lotiles, Tileset_LoTilesX, Tileset_LoTilesY, 0, 0, Tileset_CombinedPagesW, Tileset_CombinedPagesH)
 	tileset:paste(hitiles, Tileset_HiTilesX, Tileset_HiTilesY, 0, 0, Tileset_CombinedPagesW, Tileset_CombinedPagesH)
-	tileset:paste(landtiles, Tileset_LandTilesX, Tileset_LandTilesY, 0, 0, Tileset_LandTilesW, Tileset_LandTilesH)
+	tileset:paste(landtiles, Tileset_GroundTilesX, Tileset_GroundTilesY, 0, 0, Tileset_GroundTilesW, Tileset_GroundTilesH)
 	tileset:paste(wateranims, Tileset_WaterAnimsX, Tileset_WaterAnimsY, 0, 0, Tileset_WaterAnimsW, Tileset_WaterAnimsH)
 	tileset:paste(tileanims, Tileset_TileAnimsX, Tileset_TileAnimsY, 0, 0, Tileset_TileAnimsW, Tileset_TileAnimsH)
 
@@ -491,9 +644,23 @@ local function buildTileset(chipsetfile)
 end
 
 function love.run()
-	assert(#arg >= 2, "Usage: love <rm2k-tiled-path> <chipsetfile> [chipsetfile, chipsetfile, ...]")
-	for i=2, #arg do
-		buildTileset(arg[i])
+	local args = lapp [[
+Convert RM2k chipset to Tiled tileset
+	-g,--granularity (default 2) Tileset granularity
+	<files...> (string) Image files or directories of image files
+	]]
+
+	TerrainGranularity = args.granularity
+	if TerrainGranularity == 1 then
+		Init_Granularity1()
+	else
+		Init_Granularity2()
+	end
+	Init_Common()
+
+	assert(#args.files >= 2, "Usage: love <rm2k-tiled-path> <chipsetfile> [chipsetfile, chipsetfile, ...]")
+	for i=2, #args.files do
+		buildTileset(args.files[i])
 	end
 
 	love.system.openURL(love.filesystem.getSaveDirectory())
