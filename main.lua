@@ -33,6 +33,7 @@ local Tileset_HiTilesC
 local Tileset_HiTilesR
 
 local Tileset_GroundTileCorners
+local Tileset_WaterAnimCornersBase
 local Tileset_WaterAnimCorners
 local Tileset_TileAnimFramesBase
 local Tileset_WaterAnimFramesBase
@@ -58,7 +59,6 @@ local Tileset_HiTilesY
 local TilesetN
 local TilesetW
 local TilesetH
-local Tileset_WaterAnimsT
 
 local XML_Tile, XML_Animation, XML_Frame = xml.tags('tile, animation, frame')
 local XML_Terrain = xml.tags('terrain')
@@ -106,6 +106,31 @@ local function BuildTilesXML(c1, r1, cs, rs, cstride, rstride, framesbase)
 	end
 end
 
+local function BuildWaterTerrain(t, tilecorners, c1, r1, cs, rs, cstride, rstride)
+	local i = 4
+	for id1 = r1*TilesetCs + c1, (r1+rs-rstride)*TilesetCs + c1, rstride*TilesetCs do
+		for id = id1, id1 + cs - cstride, cstride do
+			local nw, ne, sw, se =
+				tilecorners[i-3], tilecorners[i-2],
+				tilecorners[i-1], tilecorners[i-0]
+
+			local terrain = "%s,%s,%s,%s"
+			terrain = terrain:format(
+				(nw ~= '') and t or '',
+				(ne ~= '') and t or '',
+				(sw ~= '') and t or '',
+				(se ~= '') and t or '')
+
+			Tileset_TileTerrains[id] = terrain
+
+			i = i + 4
+			if i > #tilecorners then
+				return
+			end
+		end
+	end
+end
+
 local function BuildTileTerrain(t, t0, tcorner, tilecorners, c1, r1, cs, rs, cstride, rstride)
 	local i = 4
 	for id1 = r1*TilesetCs + c1, (r1+rs-rstride)*TilesetCs + c1, rstride*TilesetCs do
@@ -134,31 +159,14 @@ end
 local function Init_Common()
 	Tileset_WaterAnimCorners = {}
 
-	local watertilecorners = {
-		'ct','ct','ct','ct',
-		'ia','ct','ct','ct', 'ct','ia','ct','ct',
-		'ct','ct','ia','ct', 'ct','ct','ct','ia',
-		'ct','ia','ia','ct', 'ia','ct','ct','ia',
-	}
+	local shorecorners = Tileset_WaterAnimCornersBase
 
 	local watercorners = Tileset_WaterAnimCorners
-	for _, w in ipairs({'W', 'D'}) do
-		for i = 4, #watertilecorners, 4 do
+	for i = 4, #shorecorners, 4 do
+		for e = 1,2 do
 			for f = 1,3 do
 				for j = -3,0 do
-					local corner = watertilecorners[i+j]
-					watercorners[#watercorners+1] = w..corner..f
-				end
-			end
-		end
-	end
-
-	local groundcorners = Tileset_GroundTileCorners
-	for e = 1,2 do
-		for i = 8, #groundcorners-4, 4 do
-			for f = 1,3 do
-				for j = -3,0 do
-					local corner = groundcorners[i+j]
+					local corner = shorecorners[i+j]
 					if corner == 'ct' then
 						corner = 'W'..corner
 					else
@@ -170,15 +178,6 @@ local function Init_Common()
 			end
 		end
 	end
-
-	Tileset_TileTerrains = {}
-
-	--for t = 12, 13 do
-	--	BuildTileTerrain(t, 12, Tileset_WaterAnimCorners,
-	--	Tileset_WaterAnimsC, Tileset_WaterAnimsR,
-	--	Tileset_WaterAnimsCs, Tileset_WaterAnimsRs,
-	--	3, 1)
-	--end
 
 	Tileset_WaterAnimsX = TileSize*Tileset_WaterAnimsC
 	Tileset_WaterAnimsY = TileSize*Tileset_WaterAnimsR
@@ -197,7 +196,6 @@ local function Init_Common()
 	TilesetN = TilesetCs*TilesetRs
 	TilesetW = TileSize*TilesetCs
 	TilesetH = TileSize*TilesetRs
-	Tileset_WaterAnimsT = Tileset_WaterAnimsR*TilesetCs+Tileset_WaterAnimsC
 
 	TilesetXML = xml.elem("tileset", {
 		name = "$tilesetname",
@@ -205,22 +203,15 @@ local function Init_Common()
 		tileheight = TileSize,
 		tilecount = TilesetN,
 		columns = TilesetCs,
-		xml.elem("terraintypes"),
 		xml.elem("image", {
 			source = "$imagefile",
 			width = TilesetW,
 			height = TilesetH
 		})
 	})
-
-	Tileset_TerrainsXML = TilesetXML:child_with_name("terraintypes")
 end
 
 local function Init_TilesXML()
-	--BuildTerrainsXML("Water", Tileset_WaterAnimsC, Tileset_WaterAnimsR,
-	--	Tileset_WaterAnimsCs, 1,
-	--	3, 1)
-
 	BuildTilesXML(
 		Tileset_GroundTilesC, Tileset_GroundTilesR,
 		Tileset_GroundTilesCs, Tileset_GroundTilesRs,
@@ -256,30 +247,30 @@ end
 ]]
 
 --[[ Terrain granularity 2, using terrains
-	LLLLLLHHHHHHGGGGGGGGWwwWww
-	LLLLLLHHHHHHGGGGGGGGWwwWww
-	LLLLLLHHHHHHGGGGGGGGWwwWww
-	LLLLLLHHHHHHGGGGGGGGWwwXxx
-	LLLLLLHHHHHHGGGGGGGGXxxXxx
-	LLLLLLHHHHHHGGGGGGGGXxxXxx
-	LLLLLLHHHHHHGGGGGGGGXxxXxx
-	LLLLLLHHHHHHGGGGGGGGSssSss
-	LLLLLLHHHHHHGGGGGGGGSssSss
-	LLLLLLHHHHHHGGGGGGGGSssSss
-	LLLLLLHHHHHHGGGGGGGGSssSss
-	LLLLLLHHHHHHGGGGGGGGSssSss
-	LLLLLLHHHHHHGGGGGGGGSssSss
-	LLLLLLHHHHHHGGGGGGGGSssSss
-	LLLLLLHHHHHHGGGGGGGGTttTtt
-	LLLLLLHHHHHHGGGGGGGGTttTtt
-	LLLLLLHHHHHHGGGGGGGGTttTtt
-	LLLLLLHHHHHHGGGGGGGGTttTtt
-	LLLLLLHHHHHHGGGGGGGGTttTtt
-	LLLLLLHHHHHHGGGGGGGGTttTtt
-	LLLLLLHHHHHHGGGGGGGGTttTtt
-	LLLLLLHHHHHHGGGGGGGGABCabc
-	LLLLLLHHHHHHGGGGGGGGabcabc
-	LLLLLLHHHHHHGGGGGGGG
+	LLLLLLHHHHHHSssTttGGGGGGGG
+	LLLLLLHHHHHHSssTttGGGGGGGG
+	LLLLLLHHHHHHSssTttGGGGGGGG
+	LLLLLLHHHHHHSssTttGGGGGGGG
+	LLLLLLHHHHHHSssTttGGGGGGGG
+	LLLLLLHHHHHHSssTttGGGGGGGG
+	LLLLLLHHHHHHSssTttGGGGGGGG
+	LLLLLLHHHHHHSssTttGGGGGGGG
+	LLLLLLHHHHHHSssTttGGGGGGGG
+	LLLLLLHHHHHHSssTttGGGGGGGG
+	LLLLLLHHHHHHSssTttGGGGGGGG
+	LLLLLLHHHHHHSssTttGGGGGGGG
+	LLLLLLHHHHHHSssTttGGGGGGGG
+	LLLLLLHHHHHH......GGGGGGGG
+	LLLLLLHHHHHH......GGGGGGGG
+	LLLLLLHHHHHH......GGGGGGGG
+	LLLLLLHHHHHH......GGGGGGGG
+	LLLLLLHHHHHH......GGGGGGGG
+	LLLLLLHHHHHH......GGGGGGGG
+	LLLLLLHHHHHHABCabcGGGGGGGG
+	LLLLLLHHHHHHabcabcGGGGGGGG
+	LLLLLLHHHHHH      GGGGGGGG
+	LLLLLLHHHHHH      GGGGGGGG
+	LLLLLLHHHHHH      GGGGGGGG
 --]]
 
 local function Init_Granularity2()
@@ -288,20 +279,20 @@ local function Init_Granularity2()
 	Tileset_HiTilesC = 6
 	Tileset_HiTilesR = 0
 
-	Tileset_GroundTilesC = 12
-	Tileset_GroundTilesR = 0
-	Tileset_GroundTilesCs = 8
-	Tileset_GroundTilesRs = 24
+	Tileset_WaterAnimsC = 12
+	Tileset_WaterAnimsR = 0
+	Tileset_WaterAnimsCs = 6
+	Tileset_WaterAnimsRs = 15
 
-	Tileset_TileAnimsC = 20
-	Tileset_TileAnimsR = 21
+	Tileset_TileAnimsC = 12
+	Tileset_TileAnimsR = 22
 	Tileset_TileAnimsCs = 6
 	Tileset_TileAnimsRs = 2
 
-	Tileset_WaterAnimsC = 20
-	Tileset_WaterAnimsR = 0
-	Tileset_WaterAnimsCs = 6
-	Tileset_WaterAnimsRs = 21
+	Tileset_GroundTilesC = 18
+	Tileset_GroundTilesR = 0
+	Tileset_GroundTilesCs = 8
+	Tileset_GroundTilesRs = 24
 
 	TilesetCs = 2*Tileset_CombinedPagesCs + Tileset_GroundTilesCs + Tileset_WaterAnimsCs
 	TilesetRs = Tileset_CombinedPagesRs
@@ -313,6 +304,24 @@ local function Init_Granularity2()
 		'xa','ct','ct','ct', 'ct','xa','ct','ct', 'ct','ct','xa','ct',
 		'ct','ct','ct','xa', 'xa','ct','ct','xa', 'ct','xa','xa','ct',
 		'du','du','du','du',
+	}
+
+	Tileset_WaterAnimCornersBase = {
+		'ct', 'ct', 'ct', 'ct',
+		'ia','','','',
+		'','ia','','',
+		'','','ia','',
+		'','','','ia',
+		'','ia','ia','',
+		'ia','','','ia',
+		'he','he','','',
+		'','','he','he',
+		've','','ve','',
+		'','ve','','ve',
+		'xa','he','ve','',
+		'he','xa','','ve',
+		've','','xa','he',
+		'','ve','he','xa',
 	}
 
 	Tileset_TileAnimFramesBase = {
@@ -331,6 +340,8 @@ local function Init_Granularity2()
 
 	Init_Common()
 
+	Tileset_TileTerrains = {}
+
 	for t = 0, 11 do
 		BuildTileTerrain(t, 0, 'ct', Tileset_GroundTileCorners,
 			Tileset_GroundTilesC, Tileset_GroundTilesR+(2*t),
@@ -338,9 +349,23 @@ local function Init_Granularity2()
 			1, 1)
 	end
 
+	for t = 12, 13 do
+		BuildWaterTerrain(t, Tileset_WaterAnimCornersBase,
+			Tileset_WaterAnimsC+((t-12)*3), Tileset_WaterAnimsR,
+			Tileset_WaterAnimsCs/2, Tileset_WaterAnimsRs,
+			3, 1)
+	end
+
+	Tileset_TerrainsXML = xml.elem("terraintypes")
+	TilesetXML:add_child(Tileset_TerrainsXML)
+
 	BuildTerrainsXML("Ground", Tileset_GroundTilesC, Tileset_GroundTilesR,
 		Tileset_GroundTilesCs, Tileset_GroundTilesRs,
 		Tileset_GroundTilesCs, 2)
+
+	BuildTerrainsXML("Water", Tileset_WaterAnimsC, Tileset_WaterAnimsR,
+		Tileset_WaterAnimsCs, 1,
+		3, 1)
 
 	Init_TilesXML()
 end
@@ -444,29 +469,29 @@ local RM2k_TileAnimBlockXY = {
 local MTS = MiniTileSize
 
 local RM2k_WaterAnimBlockMTXY = {
-	'1ia1-nw','1ia1-ne','1ia2-nw','1ia2-ne','1ia3-nw','1ia3-ne','2ia1-nw','2ia1-ne','2ia2-nw','2ia2-ne','2ia3-nw','2ia3-ne',
-	'1ia1-sw','1ia1-se','1ia2-sw','1ia2-se','1ia3-sw','1ia3-se','2ia1-sw','2ia1-se','2ia2-sw','2ia2-se','2ia3-sw','2ia3-se',
-	'1ve1-nw','1ve1-ne','1ve2-nw','1ve2-ne','1ve3-nw','1ve3-ne','2ve1-nw','2ve1-ne','2ve2-nw','2ve2-ne','2ve3-nw','2ve3-ne',
-	'1ve1-sw','1ve1-se','1ve2-sw','1ve2-se','1ve3-sw','1ve3-se','2ve1-sw','2ve1-se','2ve2-sw','2ve2-se','2ve3-sw','2ve3-se',
-	'1he1-nw','1he1-ne','1he2-nw','1he2-ne','1he3-nw','1he3-ne','2he1-nw','2he1-ne','2he2-nw','2he2-ne','2he3-nw','2he3-ne',
+	'1ia1-se','1ia1-sw','1ia2-se','1ia2-sw','1ia3-se','1ia3-sw','2ia1-se','2ia1-sw','2ia2-se','2ia2-sw','2ia3-se','2ia3-sw',
+	'1ia1-ne','1ia1-nw','1ia2-ne','1ia2-nw','1ia3-ne','1ia3-nw','2ia1-ne','2ia1-nw','2ia2-ne','2ia2-nw','2ia3-ne','2ia3-nw',
+	'1ve1-ne','1ve1-nw','1ve2-ne','1ve2-nw','1ve3-ne','1ve3-nw','2ve1-ne','2ve1-nw','2ve2-ne','2ve2-nw','2ve3-ne','2ve3-nw',
+	'1ve1-se','1ve1-sw','1ve2-se','1ve2-sw','1ve3-se','1ve3-sw','2ve1-se','2ve1-sw','2ve2-se','2ve2-sw','2ve3-se','2ve3-sw',
 	'1he1-sw','1he1-se','1he2-sw','1he2-se','1he3-sw','1he3-se','2he1-sw','2he1-se','2he2-sw','2he2-se','2he3-sw','2he3-se',
-	'1xa1-nw','1xa1-ne','1xa2-nw','1xa2-ne','1xa3-nw','1xa3-ne','2xa1-nw','2xa1-ne','2xa2-nw','2xa2-ne','2xa3-nw','2xa3-ne',
-	'1xa1-sw','1xa1-se','1xa2-sw','1xa2-se','1xa3-sw','1xa3-se','2xa1-sw','2xa1-se','2xa2-sw','2xa2-se','2xa3-sw','2xa3-se',
+	'1he1-nw','1he1-ne','1he2-nw','1he2-ne','1he3-nw','1he3-ne','2he1-nw','2he1-ne','2he2-nw','2he2-ne','2he3-nw','2he3-ne',
+	'1xa1-se','1xa1-sw','1xa2-se','1xa2-sw','1xa3-se','1xa3-sw','2xa1-se','2xa1-sw','2xa2-se','2xa2-sw','2xa3-se','2xa3-sw',
+	'1xa1-ne','1xa1-nw','1xa2-ne','1xa2-nw','1xa3-ne','1xa3-nw','2xa1-ne','2xa1-nw','2xa2-ne','2xa2-nw','2xa3-ne','2xa3-nw',
 	'Wct1-nw','Wct1-ne','Wct2-nw','Wct2-ne','Wct3-nw','Wct3-ne','','','','','','',
-	'Wct1-sw','Wct1-se','Wct2-sw','Wct2-se','Wct3-sw','Wct3-se','','','','','','',
-	'Wia1-nw','Wia1-ne','Wia2-nw','Wia2-ne','Wia3-nw','Wia3-ne','','','','','','',
-	'Wia1-sw','Wia1-se','Wia2-sw','Wia2-se','Wia3-sw','Wia3-se','','','','','','',
-	'Dia1-nw','Dia1-ne','Dia2-nw','Dia2-ne','Dia3-nw','Dia3-ne','','','','','','',
-	'Dia1-sw','Dia1-se','Dia2-sw','Dia2-se','Dia3-sw','Dia3-se','','','','','','',
-	'Dct1-nw','Dct1-ne','Dct2-nw','Dct2-ne','Dct3-nw','Dct3-ne','','','','','','',
-	'Dct1-sw','Dct1-se','Dct2-sw','Dct2-se','Dct3-sw','Dct3-se'
+	'Wct1-sw','Wct1-se','Wct2-sw','Wct2-se','Wct3-sw','Wct3-se',--'','','','','','',
+	--'Wia1-nw','Wia1-ne','Wia2-nw','Wia2-ne','Wia3-nw','Wia3-ne',
+	--'Wia1-sw','Wia1-se','Wia2-sw','Wia2-se','Wia3-sw','Wia3-se',
+	--'Dia1-nw','Dia1-ne','Dia2-nw','Dia2-ne','Dia3-nw','Dia3-ne',
+	--'Dia1-sw','Dia1-se','Dia2-sw','Dia2-se','Dia3-sw','Dia3-se',
+	--'Dct1-nw','Dct1-ne','Dct2-nw','Dct2-ne','Dct3-nw','Dct3-ne',
+	--'Dct1-sw','Dct1-se','Dct2-sw','Dct2-se','Dct3-sw','Dct3-se'
 }
 for y = 0,7 do
 	for x = 0,11 do
 		RM2k_WaterAnimBlockMTXY[RM2k_WaterAnimBlockMTXY[y*12+x+1]] = {x*MTS,MTS*y}
 	end
 end
-for y = 8,15 do
+for y = 8,9 do
 	for x = 0,5 do
 		RM2k_WaterAnimBlockMTXY[RM2k_WaterAnimBlockMTXY[y*12+x+1]] = {x*MTS,MTS*y}
 	end
@@ -575,17 +600,13 @@ local function buildTilesFromBlocks(blocks, minitilexys, tilecorners)
 			local nw, ne, sw, se =
 			tilecorners[i-3]..'-nw', tilecorners[i-2]..'-ne',
 			tilecorners[i-1]..'-sw', tilecorners[i-0]..'-se'
-			assert(minitiles[nw], nw)
-			assert(minitiles[ne], ne)
-			assert(minitiles[sw], sw)
-			assert(minitiles[se], se)
 			nw, ne, sw, se = minitiles[nw], minitiles[ne], minitiles[sw], minitiles[se]
 
 			local blocktile = love_image_newImageData(TileSize, TileSize)
-			blocktile:paste(nw, MTS*0, MTS*0, 0, 0, MiniTileSize, MiniTileSize)
-			blocktile:paste(ne, MTS*1, MTS*0, 0, 0, MiniTileSize, MiniTileSize)
-			blocktile:paste(sw, MTS*0, MTS*1, 0, 0, MiniTileSize, MiniTileSize)
-			blocktile:paste(se, MTS*1, MTS*1, 0, 0, MiniTileSize, MiniTileSize)
+			if nw then blocktile:paste(nw, MTS*0, MTS*0, 0, 0, MiniTileSize, MiniTileSize) end
+			if ne then blocktile:paste(ne, MTS*1, MTS*0, 0, 0, MiniTileSize, MiniTileSize) end
+			if sw then blocktile:paste(sw, MTS*0, MTS*1, 0, 0, MiniTileSize, MiniTileSize) end
+			if se then blocktile:paste(se, MTS*1, MTS*1, 0, 0, MiniTileSize, MiniTileSize) end
 			tiles[#tiles+1] = blocktile
 		end
 	end
