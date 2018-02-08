@@ -35,8 +35,6 @@ local Tileset_HiTilesR
 local Tileset_GroundTileCorners
 local Tileset_WaterAnimCornersBase
 local Tileset_WaterAnimCorners
-local Tileset_TileAnimFramesBase
-local Tileset_WaterAnimFramesBase
 
 local Tileset_TileTerrains
 
@@ -81,9 +79,8 @@ local function BuildTilesXML(c1, r1, cs, rs, cstride, rstride, framesbase)
 	for id1 = r1*TilesetCs + c1, (r1+rs-rstride)*TilesetCs + c1, rstride*TilesetCs do
 		for id = id1, id1 + cs - cstride, cstride do
 			tile.id = id
-			tile.terrain = nil
-
-			tile.terrain = Tileset_TileTerrains[id]
+			tile.terrain = Tileset_TileTerrains and
+				Tileset_TileTerrains[id] or nil
 
 			if framesbase then
 				for f = 2, #framesbase, 2 do
@@ -211,23 +208,6 @@ local function Init_Common()
 	})
 end
 
-local function Init_TilesXML()
-	BuildTilesXML(
-		Tileset_GroundTilesC, Tileset_GroundTilesR,
-		Tileset_GroundTilesCs, Tileset_GroundTilesRs,
-		1, 1)
-	BuildTilesXML(
-		Tileset_WaterAnimsC, Tileset_WaterAnimsR,
-		Tileset_WaterAnimsCs, Tileset_WaterAnimsRs,
-		3, 1,
-		Tileset_WaterAnimFramesBase)
-	BuildTilesXML(
-		Tileset_TileAnimsC, Tileset_TileAnimsR,
-		3, 1,
-		1, 1,
-		Tileset_TileAnimFramesBase)
-end
-
 --[[ Minitile codes
 	du	dummy
 	ct	center
@@ -247,30 +227,30 @@ end
 ]]
 
 --[[ Terrain granularity 2, using terrains
-	LLLLLLHHHHHHSssTttGGGGGGGG
-	LLLLLLHHHHHHSssTttGGGGGGGG
-	LLLLLLHHHHHHSssTttGGGGGGGG
-	LLLLLLHHHHHHSssTttGGGGGGGG
-	LLLLLLHHHHHHSssTttGGGGGGGG
-	LLLLLLHHHHHHSssTttGGGGGGGG
-	LLLLLLHHHHHHSssTttGGGGGGGG
-	LLLLLLHHHHHHSssTttGGGGGGGG
-	LLLLLLHHHHHHSssTttGGGGGGGG
-	LLLLLLHHHHHHSssTttGGGGGGGG
-	LLLLLLHHHHHHSssTttGGGGGGGG
-	LLLLLLHHHHHHSssTttGGGGGGGG
-	LLLLLLHHHHHHSssTttGGGGGGGG
-	LLLLLLHHHHHH......GGGGGGGG
-	LLLLLLHHHHHH......GGGGGGGG
-	LLLLLLHHHHHH......GGGGGGGG
-	LLLLLLHHHHHH......GGGGGGGG
-	LLLLLLHHHHHH......GGGGGGGG
-	LLLLLLHHHHHH......GGGGGGGG
+	LLLLLLHHHHHHWwwXxxGGGGGGGG
+	LLLLLLHHHHHHWwwXxxGGGGGGGG
+	LLLLLLHHHHHHWwwXxxGGGGGGGG
+	LLLLLLHHHHHHWwwXxxGGGGGGGG
+	LLLLLLHHHHHHWwwXxxGGGGGGGG
+	LLLLLLHHHHHHWwwXxxGGGGGGGG
+	LLLLLLHHHHHHWwwXxxGGGGGGGG
+	LLLLLLHHHHHHWwwXxxGGGGGGGG
+	LLLLLLHHHHHHWwwXxxGGGGGGGG
+	LLLLLLHHHHHHWwwXxxGGGGGGGG
+	LLLLLLHHHHHHWwwXxxGGGGGGGG
+	LLLLLLHHHHHHWwwXxxGGGGGGGG
+	LLLLLLHHHHHHWwwXxxGGGGGGGG
+	LLLLLLHHHHHHWwwXxxGGGGGGGG
+	LLLLLLHHHHHHWwwXxxGGGGGGGG
+	LLLLLLHHHHHH      GGGGGGGG
+	LLLLLLHHHHHH      GGGGGGGG
+	LLLLLLHHHHHH      GGGGGGGG
+	LLLLLLHHHHHH      GGGGGGGG
+	LLLLLLHHHHHH      GGGGGGGG
+	LLLLLLHHHHHH      GGGGGGGG
+	LLLLLLHHHHHH      GGGGGGGG
 	LLLLLLHHHHHHABCabcGGGGGGGG
 	LLLLLLHHHHHHabcabcGGGGGGGG
-	LLLLLLHHHHHH      GGGGGGGG
-	LLLLLLHHHHHH      GGGGGGGG
-	LLLLLLHHHHHH      GGGGGGGG
 --]]
 
 local function Init_Granularity2()
@@ -324,14 +304,14 @@ local function Init_Granularity2()
 		'','ve','he','xa',
 	}
 
-	Tileset_TileAnimFramesBase = {
+	local Tileset_TileAnimFramesBase = {
 		TilesetCs*0 + 0, 125,
 		TilesetCs*0 + 3, 125,
 		TilesetCs*1 + 0, 125,
 		TilesetCs*1 + 3, 125
 	}
 
-	Tileset_WaterAnimFramesBase = {
+	local Tileset_WaterAnimFramesBase = {
 		0, 125,
 		1, 125,
 		2, 125,
@@ -367,34 +347,47 @@ local function Init_Granularity2()
 		Tileset_WaterAnimsCs, 1,
 		3, 1)
 
-	Init_TilesXML()
+	BuildTilesXML(
+		Tileset_GroundTilesC, Tileset_GroundTilesR,
+		Tileset_GroundTilesCs, Tileset_GroundTilesRs,
+		1, 1)
+	BuildTilesXML(
+		Tileset_WaterAnimsC, Tileset_WaterAnimsR,
+		Tileset_WaterAnimsCs, Tileset_WaterAnimsRs,
+		3, 1,
+		Tileset_WaterAnimFramesBase)
+	BuildTilesXML(
+		Tileset_TileAnimsC, Tileset_TileAnimsR,
+		3, 1,
+		1, 1,
+		Tileset_TileAnimFramesBase)
 end
 
 --[[ Terrain granularity 1, using Wang tiles
-	LLLLLLHHHHHHGGGGGGGGGGGGGGGGGGGGGGGGWwwWwwWwwWwwWww
-	LLLLLLHHHHHHGGGGGGGGGGGGGGGGGGGGGGGGWwwWWWXxxXxxXxx
-	LLLLLLHHHHHHGGGGGGGGGGGGGGGGGGGGGGGGXxxXxxXxxXxxSss
-	LLLLLLHHHHHHGGGGGGGGGGGGGGGGGGGGGGGGSssSssSssSssSss
-	LLLLLLHHHHHHGGGGGGGGGGGGGGGGGGGGGGGGSssSssSssSssSss
-	LLLLLLHHHHHHGGGGGGGGGGGGGGGGGGGGGGGGSssSssSssSssSss
-	LLLLLLHHHHHHGGGGGGGGGGGGGGGGGGGGGGGGSssSssSssSssSss
-	LLLLLLHHHHHHGGGGGGGGGGGGGGGGGGGGGGGGSssSssSssSssSss
-	LLLLLLHHHHHHGGGGGGGGGGGGGGGGGGGGGGGGSssSssSssSssSss
-	LLLLLLHHHHHHGGGGGGGGGGGGGGGGGGGGGGGGSssSssSssSssSss
-	LLLLLLHHHHHHGGGGGGGGGGGGGGGGGGGGGGGGSssSssSssSssSss
-	LLLLLLHHHHHHGGGGGGGGGGGGGGGGGGGGGGGGSssSssSssSssSss
-	LLLLLLHHHHHHGGGGGGGGGGGGGGGGGGGGGGGGTttTttTttTttTtt
-	LLLLLLHHHHHHGGGGGGGGGGGGGGGGGGGGGGGGTttTttTttTttTtt
-	LLLLLLHHHHHHGGGGGGGGGGGGGGGGGGGGGGGGTttTttTttTttTtt
-	LLLLLLHHHHHHGGGGGGGGGGGGGGGGGGGGGGGGTttTttTttTttTtt
-	LLLLLLHHHHHHGGGGGGGGGGGGGGGGGGGGGGGGTttTttTttTttTtt
-	LLLLLLHHHHHHGGGGGGGGGGGGGGGGGGGGGGGGTttTttTttTttTtt
-	LLLLLLHHHHHHGGGGGGGGGGGGGGGGGGGGGGGGTttTttTttTttTtt
-	LLLLLLHHHHHHGGGGGGGGGGGGGGGGGGGGGGGGTttTttTttTttTtt
-	LLLLLLHHHHHHGGGGGGGGGGGGGGGGGGGGGGGGTttTttTttTttTtt
-	LLLLLLHHHHHHGGGGGGGGGGGGGGGGGGGGGGGGTttABCabcabcabc
-	LLLLLLHHHHHHGGGGGGGGGGGGGGGGGGGGGGGG
-	LLLLLLHHHHHHGGGGGGGGGGGGGGGGGGGGGGGG
+	LLLLLLHHHHHHAWwwXxxWwwXxxGGGGGGGGGGGGGGGGGGGGGGGG
+	LLLLLLHHHHHHBWwwXxxWwwXxxGGGGGGGGGGGGGGGGGGGGGGGG
+	LLLLLLHHHHHHCWwwXxxWwwXxxGGGGGGGGGGGGGGGGGGGGGGGG
+	LLLLLLHHHHHHaWwwXxxWwwXxxGGGGGGGGGGGGGGGGGGGGGGGG
+	LLLLLLHHHHHHbWwwXxxWwwXxxGGGGGGGGGGGGGGGGGGGGGGGG
+	LLLLLLHHHHHHcWwwXxxWwwXxxGGGGGGGGGGGGGGGGGGGGGGGG
+	LLLLLLHHHHHHaWwwXxxWwwXxxGGGGGGGGGGGGGGGGGGGGGGGG
+	LLLLLLHHHHHHbWwwXxxWwwXxxGGGGGGGGGGGGGGGGGGGGGGGG
+	LLLLLLHHHHHHcWwwXxxWwwXxxGGGGGGGGGGGGGGGGGGGGGGGG
+	LLLLLLHHHHHHaWwwXxxWwwXxxGGGGGGGGGGGGGGGGGGGGGGGG
+	LLLLLLHHHHHHbWwwXxxWwwXxxGGGGGGGGGGGGGGGGGGGGGGGG
+	LLLLLLHHHHHHcWwwXxxWwwXxxGGGGGGGGGGGGGGGGGGGGGGGG
+	LLLLLLHHHHHH WwwXxxWwwXxxGGGGGGGGGGGGGGGGGGGGGGGG
+	LLLLLLHHHHHH WwwXxxWwwXxxGGGGGGGGGGGGGGGGGGGGGGGG
+	LLLLLLHHHHHH WwwXxxWwwXxxGGGGGGGGGGGGGGGGGGGGGGGG
+	LLLLLLHHHHHH WwwXxxWwwXxxGGGGGGGGGGGGGGGGGGGGGGGG
+	LLLLLLHHHHHH WwwXxxWwwXxxGGGGGGGGGGGGGGGGGGGGGGGG
+	LLLLLLHHHHHH WwwXxxWwwXxxGGGGGGGGGGGGGGGGGGGGGGGG
+	LLLLLLHHHHHH WwwXxxWwwXxxGGGGGGGGGGGGGGGGGGGGGGGG
+	LLLLLLHHHHHH WwwXxxWwwXxxGGGGGGGGGGGGGGGGGGGGGGGG
+	LLLLLLHHHHHH WwwXxxWwwXxxGGGGGGGGGGGGGGGGGGGGGGGG
+	LLLLLLHHHHHH WwwXxxWwwXxxGGGGGGGGGGGGGGGGGGGGGGGG
+	LLLLLLHHHHHH WwwXxxWwwXxxGGGGGGGGGGGGGGGGGGGGGGGG
+	LLLLLLHHHHHH WwwXxxWwwXxxGGGGGGGGGGGGGGGGGGGGGGGG
 --]]
 
 local function Init_Granularity1()
@@ -403,22 +396,22 @@ local function Init_Granularity1()
 	Tileset_HiTilesC = 6
 	Tileset_HiTilesR = 0
 
-	Tileset_GroundTilesC = 12
+	Tileset_WaterAnimsC = 13
+	Tileset_WaterAnimsR = 0
+	Tileset_WaterAnimsCs = 12
+	Tileset_WaterAnimsRs = 24
+
+	Tileset_TileAnimsC = 12
+	Tileset_TileAnimsR = 0
+	Tileset_TileAnimsCs = 1
+	Tileset_TileAnimsRs = 12
+
+	Tileset_GroundTilesC = 25
 	Tileset_GroundTilesR = 0
 	Tileset_GroundTilesCs = 24
 	Tileset_GroundTilesRs = 24
 
-	Tileset_WaterAnimsC = 36
-	Tileset_WaterAnimsR = 0
-	Tileset_WaterAnimsCs = 15
-	Tileset_WaterAnimsRs = 22
-
-	Tileset_TileAnimsC = 39
-	Tileset_TileAnimsR = 21
-	Tileset_TileAnimsCs = 12
-	Tileset_TileAnimsRs = 1
-
-	TilesetCs = 2*Tileset_CombinedPagesCs + Tileset_GroundTilesCs + Tileset_WaterAnimsCs
+	TilesetCs = 2*Tileset_CombinedPagesCs + Tileset_TileAnimsCs + Tileset_WaterAnimsCs + Tileset_GroundTilesCs
 	TilesetRs = Tileset_GroundTilesRs
 
 	Tileset_GroundTileCorners = {
@@ -437,14 +430,32 @@ local function Init_Granularity1()
 		'du','du','du','du',
 	}
 
-	Tileset_TileAnimFramesBase = {
-		TilesetCs*0 + 0, 125,
-		TilesetCs*0 + 3, 125,
-		TilesetCs*0 + 6, 125,
-		TilesetCs*0 + 9, 125
+	Tileset_WaterAnimCornersBase = {
+		'ct','ct','ct','ct',
+		'ia','','','', '','ia','','',
+		'ia','ia','','', '','','','ia', 'ia','','','ia', '','ia','','ia',
+		'ia','ia','','ia', '','','ia','', 'ia','','ia','', '','ia','ia','',
+		'ia','ia','ia','', '','','ia','ia', 'ia','','ia','ia', '','ia','ia','ia',
+		'ia','ia','ia','ia',
+		've','','ve','', 've','ia','ve','', 've','','ve','ia',
+		've','ia','ve','ia', 'he','he','','', 'he','he','','ia', 'he','he','ia','',
+		'he','he','ia','ia', '','ve','','ve', '','ve','ia','ve', 'ia','ve','','ve',
+		'ia','ve','ia','ve', '','','he','he', 'ia','','he','he', '','ia','he','he',
+		'ia','ia','he','he', 've','ve','ve','ve', 'he','he','he','he',
+		'xa','he','ve','',
+		'xa','he','ve','ia', 'he','xa','','ve', 'he','xa','ia','ve', '','ve','he','xa',
+		'ia','ve','he','xa', 've','','xa','he', 've','ia','xa','he', 'xa','xa','ve','ve',
+		'xa','he','xa','he', 've','ve','xa','xa', 'he','xa','he','xa', 'xa','xa','xa','xa',
 	}
 
-	Tileset_WaterAnimFramesBase = {
+	local Tileset_TileAnimFramesBase = {
+		TilesetCs*0 + 0, 125,
+		TilesetCs*3 + 0, 125,
+		TilesetCs*6 + 0, 125,
+		TilesetCs*9 + 0, 125
+	}
+
+	local Tileset_WaterAnimFramesBase = {
 		0, 125,
 		1, 125,
 		2, 125,
@@ -452,7 +463,21 @@ local function Init_Granularity1()
 	}
 
 	Init_Common()
-	Init_TilesXML()
+
+	BuildTilesXML(
+		Tileset_GroundTilesC, Tileset_GroundTilesR,
+		Tileset_GroundTilesCs, Tileset_GroundTilesRs,
+		1, 1)
+	BuildTilesXML(
+		Tileset_WaterAnimsC, Tileset_WaterAnimsR,
+		Tileset_WaterAnimsCs, Tileset_WaterAnimsRs,
+		3, 1,
+		Tileset_WaterAnimFramesBase)
+	BuildTilesXML(
+		Tileset_TileAnimsC, Tileset_TileAnimsR,
+		Tileset_TileAnimsCs, Tileset_TileAnimsRs/4,
+		1, 1,
+		Tileset_TileAnimFramesBase)
 end
 
 local RM2k_BlockW = TileSize*3
