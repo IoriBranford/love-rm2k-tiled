@@ -38,6 +38,7 @@ local Tileset_WaterAnimCorners
 
 local Tileset_TerrainCollectionType
 local Tileset_TerrainType
+local Tileset_Terrains
 local Tileset_TileTerrains
 
 local TerrainGranularity
@@ -68,10 +69,14 @@ local Tileset_TerrainsXML
 
 local XML_WangEdgeColor, XML_WangCornerColor, XML_WangTile = xml.tags('wangedgecolor, wangcornercolor, wangtile')
 
+local WangColors = {
+	"#000000", "#0000AA", "#00AA00", "#00AAAA", "#AA0000", "#AA00AA", "#AA5500", "#AAAAAA",
+	"#555555", "#5555FF", "#55FF55", "#55FFFF", "#FF5555", "#FF55FF", "#FFFF55"
+}
+
 local function BuildTerrainsXML(typ, c1, r1, cs, rs, cstride, rstride)
 	local terrain = {}
 	local color = { tile = -1 }
-	local wangtile = {}
 
 	for id1 = r1*TilesetCs + c1, (r1+rs-rstride)*TilesetCs + c1, rstride*TilesetCs do
 		for id = id1, id1 + cs - cstride, cstride do
@@ -79,39 +84,56 @@ local function BuildTerrainsXML(typ, c1, r1, cs, rs, cstride, rstride)
 			terrain.tile=id
 
 			if Tileset_TerrainType == "wangset" then
-				for i = 0, 14 do
-					color.probability = i == 0 and 0 or 1
-					color.color = string.format("#%06X", 0xC0 * i)
+				for i = 0, 1 do
+					color.probability = i == 0 and 1/16 or 1
+					color.color = string.format("#%06x", bit.lshift(0x80, i*8))
 					terrain[#terrain + 1] = XML_WangEdgeColor(color)
 					terrain[#terrain + 1] = XML_WangCornerColor(color)
-				end
-
-				for i, wangid in pairs(Tileset_TileTerrains) do
-					wangtile.tileid = i
-					wangtile.wangid = wangid
-					terrain[#terrain + 1] = XML_WangTile(wangtile)
 				end
 			end
 
 			local terrainxml = XML_Terrain(terrain)
-
+			Tileset_Terrains[#Tileset_Terrains + 1] = terrainxml
 			Tileset_TerrainsXML:add_child(terrainxml)
 			tablex.clear(terrain)
 		end
 	end
 end
 
-local function BuildTilesXML(c1, r1, cs, rs, cstride, rstride, framesbase)
+local function BuildTilesXML(c1, r1, cs, rs, cstride, rstride, tilecorners, framesbase)
 	local frames = {}
 	local tile = {}
 	local frame = {}
+	local wangtile = {}
+	local i = 4
 	for id1 = r1*TilesetCs + c1, (r1+rs-rstride)*TilesetCs + c1, rstride*TilesetCs do
 		for id = id1, id1 + cs - cstride, cstride do
 			tile.id = id
+			tile.probability = nil
+
+			if tilecorners and i <= #tilecorners then
+				local se = tilecorners[i]
+
+				if se == 'du' then
+					tile.probability = 0
+				end
+
+				i = i + 4
+				if i > #tilecorners then
+					i = 4
+				end
+			end
 
 			local terrain = Tileset_TileTerrains[id]
 			if Tileset_TerrainType == "terrain" then
 				tile.terrain = terrain
+			elseif Tileset_TerrainType == "wangset" and terrain then
+				local wangset, wangid = terrain:match("(%x),(0x%x%x%x%x%x%x%x%x)")
+				terrain = Tileset_Terrains[tonumber(wangset, 16)+1]
+
+				wangtile.tileid = id
+				wangtile.wangid = wangid
+				terrain[#terrain + 1] = XML_WangTile(wangtile)
 			end
 
 			if framesbase then
@@ -122,7 +144,7 @@ local function BuildTilesXML(c1, r1, cs, rs, cstride, rstride, framesbase)
 				end
 			end
 
-			if #frames > 0 or tile.terrain then
+			if #frames > 0 or tile.terrain or tile.probability then
 				local tileelem = XML_Tile(tile)
 				if #frames > 0 then
 					tileelem:add_child(XML_Animation(frames))
@@ -131,123 +153,6 @@ local function BuildTilesXML(c1, r1, cs, rs, cstride, rstride, framesbase)
 			end
 
 			tablex.clear(frames)
-		end
-	end
-end
-
-local function BuildWaterTerrain(t, tilecorners, c1, r1, cs, rs, cstride, rstride)
-	local i = 4
-	for id1 = r1*TilesetCs + c1, (r1+rs-rstride)*TilesetCs + c1, rstride*TilesetCs do
-		for id = id1, id1 + cs - cstride, cstride do
-			local nw, ne, sw, se =
-				tilecorners[i-3], tilecorners[i-2],
-				tilecorners[i-1], tilecorners[i-0]
-
-			local terrain = "%s,%s,%s,%s"
-			terrain = terrain:format(
-				(nw ~= '') and t or '',
-				(ne ~= '') and t or '',
-				(sw ~= '') and t or '',
-				(se ~= '') and t or '')
-
-			Tileset_TileTerrains[id] = terrain
-
-			i = i + 4
-			if i > #tilecorners then
-				return
-			end
-		end
-	end
-end
-
-local function BuildTileTerrain(t, t0, tcorner, tilecorners, c1, r1, cs, rs, cstride, rstride)
-	local i = 4
-	for id1 = r1*TilesetCs + c1, (r1+rs-rstride)*TilesetCs + c1, rstride*TilesetCs do
-		for id = id1, id1 + cs - cstride, cstride do
-			local nw, ne, sw, se =
-				tilecorners[i-3], tilecorners[i-2],
-				tilecorners[i-1], tilecorners[i-0]
-
-			local terrain = "%s,%s,%s,%s"
-			terrain = terrain:format(
-				(nw == tcorner) and t or t0,
-				(ne == tcorner) and t or t0,
-				(sw == tcorner) and t or t0,
-				(se == tcorner) and t or t0)
-
-			Tileset_TileTerrains[id] = terrain
-
-			i = i + 4
-			if i > #tilecorners then
-				return
-			end
-		end
-	end
-end
-
-local function BuildWangTiles(incolor, outcolor, tilecorners, c1, r1, cs, rs, cstride, rstride)
-	local i = 4
-	local color_n, color_ne, color_e, color_se, color_s, color_sw, color_w, color_nw
-	for id1 = r1*TilesetCs + c1, (r1+rs-rstride)*TilesetCs + c1, rstride*TilesetCs do
-		for id = id1, id1 + cs - cstride, cstride do
-			local nw, ne, sw, se =
-				tilecorners[i-3], tilecorners[i-2],
-				tilecorners[i-1], tilecorners[i-0]
-
-			if ne == 'ct' then
-				color_n = incolor; color_ne = incolor
-			elseif ne == 'xa' then
-				color_n = incolor; color_ne = outcolor
-			elseif ne == 'ia' then
-				color_n = outcolor; color_ne = outcolor
-			elseif ne == 'he' then
-				color_n = outcolor; color_ne = outcolor
-			elseif ne == 've' then
-				color_n = incolor; color_ne = outcolor
-			end
-			if se == 'ct' then
-				color_e = incolor; color_se = incolor
-			elseif se == 'xa' then
-				color_e = incolor; color_se = outcolor
-			elseif se == 'ia' then
-				color_e = outcolor; color_se = outcolor
-			elseif se == 'he' then
-				color_e = incolor; color_se = outcolor
-			elseif se == 've' then
-				color_e = outcolor; color_se = outcolor
-			end
-			if sw == 'ct' then
-				color_s = incolor; color_sw = incolor
-			elseif sw == 'xa' then
-				color_s = incolor; color_sw = outcolor
-			elseif sw == 'ia' then
-				color_s = outcolor; color_sw = outcolor
-			elseif sw == 'he' then
-				color_s = outcolor; color_sw = outcolor
-			elseif sw == 've' then
-				color_s = incolor; color_sw = outcolor
-			end
-			if nw == 'ct' then
-				color_w = incolor; color_nw = incolor
-			elseif nw == 'xa' then
-				color_w = incolor; color_nw = outcolor
-			elseif nw == 'ia' then
-				color_w = outcolor; color_nw = outcolor
-			elseif nw == 'he' then
-				color_w = incolor; color_nw = outcolor
-			elseif nw == 've' then
-				color_w = outcolor; color_nw = outcolor
-			end
-
-			Tileset_TileTerrains[id] = string.format(
-					"0x%X%X%X%X%X%X%X%X",
-					color_nw, color_w, color_sw, color_s,
-					color_se, color_e, color_ne, color_n)
-
-			i = i + 4
-			if i > #tilecorners then
-				return
-			end
 		end
 	end
 end
@@ -293,6 +198,7 @@ local function Init_Common()
 	TilesetW = TileSize*TilesetCs
 	TilesetH = TileSize*TilesetRs
 
+	Tileset_Terrains = {}
 	Tileset_TileTerrains = {}
 
 	TilesetXML = xml.elem("tileset", {
@@ -359,6 +265,31 @@ end
 	LLLLLLHHHHHHabcabcGGGGGGGG
 --]]
 
+local function BuildTileTerrain(t, t0, tcorner, tilecorners, c1, r1, cs, rs, cstride, rstride)
+	local i = 4
+	for id1 = r1*TilesetCs + c1, (r1+rs-rstride)*TilesetCs + c1, rstride*TilesetCs do
+		for id = id1, id1 + cs - cstride, cstride do
+			local nw, ne, sw, se =
+				tilecorners[i-3], tilecorners[i-2],
+				tilecorners[i-1], tilecorners[i-0]
+
+			local terrain = "%s,%s,%s,%s"
+			terrain = terrain:format(
+				(nw == tcorner) and t or t0,
+				(ne == tcorner) and t or t0,
+				(sw == tcorner) and t or t0,
+				(se == tcorner) and t or t0)
+
+			Tileset_TileTerrains[id] = terrain
+
+			i = i + 4
+			if i > #tilecorners then
+				return
+			end
+		end
+	end
+end
+
 local function Init_Granularity2()
 	Tileset_LoTilesX = TileSize*0
 	Tileset_LoTilesY = TileSize*0
@@ -384,12 +315,12 @@ local function Init_Granularity2()
 	TilesetRs = Tileset_CombinedPagesRs
 
 	Tileset_GroundTileCorners = {
-		'ct','ct','ct','ct', 'ia','he','ve','ct', 'he','he','ct','ct',
+		'ct','ct','ct','ct', 'du','du','du','du',
+		'ia','he','ve','ct', 'he','he','ct','ct',
 		'he','ia','ct','ve', 've','ct','ve','ct', 'ct','ve','ct','ve',
 		've','ct','ia','he', 'ct','ct','he','he', 'ct','ve','he','ia',
 		'xa','ct','ct','ct', 'ct','xa','ct','ct', 'ct','ct','xa','ct',
 		'ct','ct','ct','xa', 'xa','ct','ct','xa', 'ct','xa','xa','ct',
-		'du','du','du','du',
 	}
 
 	Tileset_WaterAnimCornersBase = {
@@ -430,40 +361,41 @@ local function Init_Granularity2()
 	Init_Common()
 
 	for t = 0, 11 do
+		local terrainr = Tileset_GroundTilesR+(2*t)
 		BuildTileTerrain(t, 0, 'ct', Tileset_GroundTileCorners,
-			Tileset_GroundTilesC, Tileset_GroundTilesR+(2*t),
+			Tileset_GroundTilesC, terrainr,
 			Tileset_GroundTilesCs, 2,
 			1, 1)
+
+		BuildTerrainsXML("Ground", Tileset_GroundTilesC, terrainr, 1,1,1,1)
 	end
 
 	for t = 12, 13 do
-		BuildWaterTerrain(t, Tileset_WaterAnimCornersBase,
-			Tileset_WaterAnimsC+((t-12)*3), Tileset_WaterAnimsR,
+		local terrainc = Tileset_WaterAnimsC+((t-12)*3)
+		BuildTileTerrain('', t, '', Tileset_WaterAnimCornersBase,
+			terrainc, Tileset_WaterAnimsR,
 			Tileset_WaterAnimsCs/2, Tileset_WaterAnimsRs,
 			3, 1)
+
+		BuildTerrainsXML("Water", terrainc, Tileset_WaterAnimsR, 1,1,1,1)
 	end
-
-	BuildTerrainsXML("Ground", Tileset_GroundTilesC, Tileset_GroundTilesR,
-		Tileset_GroundTilesCs, Tileset_GroundTilesRs,
-		Tileset_GroundTilesCs, 2)
-
-	BuildTerrainsXML("Water", Tileset_WaterAnimsC, Tileset_WaterAnimsR,
-		Tileset_WaterAnimsCs, 1,
-		3, 1)
 
 	BuildTilesXML(
 		Tileset_GroundTilesC, Tileset_GroundTilesR,
 		Tileset_GroundTilesCs, Tileset_GroundTilesRs,
-		1, 1)
+		1, 1,
+		Tileset_GroundTileCorners)
 	BuildTilesXML(
 		Tileset_WaterAnimsC, Tileset_WaterAnimsR,
 		Tileset_WaterAnimsCs, Tileset_WaterAnimsRs,
 		3, 1,
+		Tileset_WaterAnimCornersBase,
 		Tileset_WaterAnimFramesBase)
 	BuildTilesXML(
 		Tileset_TileAnimsC, Tileset_TileAnimsR,
 		3, 1,
 		1, 1,
+		nil,
 		Tileset_TileAnimFramesBase)
 end
 
@@ -494,6 +426,81 @@ end
 	LLLLLLHHHHHH WwwXxxWwwXxxGGGGGGGGGGGGGGGGGGGGGGGG
 --]]
 
+local function GetGroundWangColors(corner, minitile, outcolor, incolor)
+	if minitile == 'ct' then
+		return incolor, incolor
+	elseif minitile == 'xa' then
+		return incolor, outcolor
+	elseif minitile == 'ia' then
+		return outcolor, outcolor
+	end
+	if corner == 'ne' or corner == 'sw' then
+		if minitile == 'he' then
+			return outcolor, outcolor
+		elseif minitile == 've' then
+			return incolor, outcolor
+		end
+	end
+	if corner == 'se' or corner == 'nw' then
+		if minitile == 'he' then
+			return incolor, outcolor
+		elseif minitile == 've' then
+			return outcolor, outcolor
+		end
+	end
+	return outcolor, outcolor
+end
+
+local function GetWaterWangColors(corner, minitile, outcolor, incolor)
+	if minitile == 'ct' or minitile == 'xa' then
+		return incolor, incolor
+	elseif minitile == 'ia' then
+		return outcolor, incolor
+	end
+	if corner == 'ne' or corner == 'sw' then
+		if minitile == 'he' then
+			return incolor, incolor
+		elseif minitile == 've' then
+			return outcolor, incolor
+		end
+	end
+	if corner == 'se' or corner == 'nw' then
+		if minitile == 'he' then
+			return outcolor, incolor
+		elseif minitile == 've' then
+			return incolor, incolor
+		end
+	end
+	return outcolor, outcolor
+end
+
+local function BuildWangTiles(t, outcolor, incolor, getwangcolors, tilecorners, c1, r1, cs, rs, cstride, rstride)
+	local i = 4
+	local color_n, color_ne, color_e, color_se, color_s, color_sw, color_w, color_nw
+	for id1 = r1*TilesetCs + c1, (r1+rs-rstride)*TilesetCs + c1, rstride*TilesetCs do
+		for id = id1, id1 + cs - cstride, cstride do
+			local nw, ne, sw, se =
+			tilecorners[i-3], tilecorners[i-2],
+			tilecorners[i-1], tilecorners[i-0]
+
+			color_n, color_ne = getwangcolors('ne', ne, outcolor, incolor)
+			color_e, color_se = getwangcolors('se', se, outcolor, incolor)
+			color_s, color_sw = getwangcolors('sw', sw, outcolor, incolor)
+			color_w, color_nw = getwangcolors('nw', nw, outcolor, incolor)
+
+			Tileset_TileTerrains[id] = string.format(
+					"%x,0x%x%x%x%x%x%x%x%x",
+					t, color_nw, color_w, color_sw, color_s,
+					color_se, color_e, color_ne, color_n)
+
+			i = i + 4
+			if i > #tilecorners then
+				return
+			end
+		end
+	end
+end
+
 local function Init_Granularity1()
 	Tileset_LoTilesX = TileSize*0
 	Tileset_LoTilesY = TileSize*0
@@ -519,7 +526,7 @@ local function Init_Granularity1()
 	TilesetRs = Tileset_GroundTilesRs
 
 	Tileset_GroundTileCorners = {
-		'ct','ct','ct','ct', 'xa','ct','ct','ct', 'ct','xa','ct','ct',
+		'ct','ct','ct','ct', 'du','du','du','du', 'xa','ct','ct','ct', 'ct','xa','ct','ct',
 		'xa','xa','ct','ct', 'ct','ct','ct','xa', 'xa','ct','ct','xa', 'ct','xa','ct','xa',
 		'xa','xa','ct','xa', 'ct','ct','xa','ct', 'xa','ct','xa','ct', 'ct','xa','xa','ct',
 		'xa','xa','xa','ct', 'ct','ct','xa','xa', 'xa','ct','xa','xa', 'ct','xa','xa','xa',
@@ -531,7 +538,6 @@ local function Init_Granularity1()
 		'ia','he','ve','xa', 'he','ia','ct','ve', 'he','ia','xa','ve', 'ct','ve','he','ia',
 		'xa','ve','he','ia', 've','ct','ia','he', 've','xa','ia','he', 'ia','ia','ve','ve',
 		'ia','he','ia','he', 've','ve','ia','ia', 'he','ia','he','ia', 'ia','ia','ia','ia',
-		'du','du','du','du',
 	}
 
 	Tileset_WaterAnimCornersBase = {
@@ -571,39 +577,40 @@ local function Init_Granularity1()
 
 	Init_Common()
 
-	for t = 1, 12 do
-		BuildWangTiles(t, 1, Tileset_GroundTileCorners,
-			Tileset_GroundTilesC, Tileset_GroundTilesR+(2*(t-1)),
+	for t = 0, 11 do
+		BuildWangTiles(t, 1, 2, GetGroundWangColors,
+			Tileset_GroundTileCorners,
+			Tileset_GroundTilesC, Tileset_GroundTilesR+(2*t),
 			Tileset_GroundTilesCs, 2,
 			1, 1)
+		BuildTerrainsXML("Ground", Tileset_GroundTilesC, Tileset_GroundTilesR+(2*t), 1,1,1,1)
 	end
 
-	--for t = 13, 14 do
-	--	BuildWangTiles(t, 0, Tileset_WaterAnimCornersBase,
-	--		Tileset_WaterAnimsC+((t-12)*3), Tileset_WaterAnimsR,
-	--		Tileset_WaterAnimsCs/2, Tileset_WaterAnimsRs,
-	--		3, 1)
-	--end
-
-	BuildTerrainsXML("Wang", Tileset_GroundTilesC, Tileset_GroundTilesR, 1,1,1,1)
-
-	--BuildTerrainsXML("Water", Tileset_WaterAnimsC, Tileset_WaterAnimsR,
-	--	Tileset_WaterAnimsCs, 1,
-	--	3, 1)
+	for t = 12, 13 do
+		BuildWangTiles(t, 1, 2, GetWaterWangColors,
+			Tileset_WaterAnimCornersBase,
+			Tileset_WaterAnimsC+((t-12)*3), Tileset_WaterAnimsR,
+			Tileset_WaterAnimsCs, Tileset_WaterAnimsRs,
+			Tileset_WaterAnimsCs/2, 1)
+		BuildTerrainsXML("Water", Tileset_WaterAnimsC+((t-12)*3), Tileset_WaterAnimsR, 1,1,1,1)
+	end
 
 	BuildTilesXML(
 		Tileset_GroundTilesC, Tileset_GroundTilesR,
 		Tileset_GroundTilesCs, Tileset_GroundTilesRs,
-		1, 1)
+		1, 1,
+		Tileset_GroundTileCorners)
 	BuildTilesXML(
 		Tileset_WaterAnimsC, Tileset_WaterAnimsR,
 		Tileset_WaterAnimsCs, Tileset_WaterAnimsRs,
 		3, 1,
+		Tileset_WaterAnimCorners,
 		Tileset_WaterAnimFramesBase)
 	BuildTilesXML(
 		Tileset_TileAnimsC, Tileset_TileAnimsR,
 		Tileset_TileAnimsCs, Tileset_TileAnimsRs/4,
 		1, 1,
+		nil,
 		Tileset_TileAnimFramesBase)
 end
 
