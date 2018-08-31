@@ -275,10 +275,10 @@ local function BuildTileTerrain(t, t0, tcorner, tilecorners, c1, r1, cs, rs, cst
 
 			local terrain = "%s,%s,%s,%s"
 			terrain = terrain:format(
-				(nw == tcorner) and t or t0,
-				(ne == tcorner) and t or t0,
-				(sw == tcorner) and t or t0,
-				(se == tcorner) and t or t0)
+				(nw == tcorner) and t or (nw ~= 'du') and t0 or '',
+				(ne == tcorner) and t or (ne ~= 'du') and t0 or '',
+				(sw == tcorner) and t or (sw ~= 'du') and t0 or '',
+				(se == tcorner) and t or (se ~= 'du') and t0 or '')
 
 			Tileset_TileTerrains[id] = terrain
 
@@ -360,7 +360,13 @@ local function Init_Granularity2()
 
 	Init_Common()
 
-	for t = 0, 11 do
+	BuildTileTerrain(0, 0, 'ct', Tileset_GroundTileCorners,
+		Tileset_GroundTilesC, Tileset_GroundTilesR,
+		1, 1,
+		1, 1)
+	BuildTerrainsXML("Ground", Tileset_GroundTilesC, Tileset_GroundTilesR, 1,1,1,1)
+
+	for t = 1, 11 do
 		local terrainr = Tileset_GroundTilesR+(2*t)
 		BuildTileTerrain(t, 0, 'ct', Tileset_GroundTileCorners,
 			Tileset_GroundTilesC, terrainr,
